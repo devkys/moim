@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  <router-view/>
+  404 not found error page
 </template>
 
 <style scoped>
