@@ -1,6 +1,6 @@
-package com.example.moim;
+package com.example.moim.member;
 
-public class UserDTO {
+public class MemberDTO {
     private String email;
     private String nickname;
     private String pw;

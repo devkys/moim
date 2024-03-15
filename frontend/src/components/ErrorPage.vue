@@ -3,7 +3,7 @@
 </script>
 
 <template>
-  404 not found error page
+  <h1>404 not found error page</h1>
 </template>
 
 <style scoped>
