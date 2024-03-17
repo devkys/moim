@@ -2,18 +2,19 @@
 // import { ref} from 'vue'
 import { useField, useForm } from 'vee-validate'
 import axios from "axios";
+import router from "@/router";
 
 const { handleSubmit } = useForm({
   validationSchema: {
     email (value) {
-      if (/^[a-z.-]+@[a-z.-]+\.[a-z]+$/i.test(value)) return true
+      if (value) return true
 
-      return '유효한 이메일 형식을 입력해주세요.'
+      return '이메일을 입력해주세요'
     },
     pw (value) {
-      if(/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,15}$/.test(value)) return true
+      if(value) return true
 
-      return '영문 숫자 특수기호 조합 8자리 이상 입력해주세요.'
+      return '비밀번호를 입력 해주세요'
     },
 
   },
@@ -24,7 +25,16 @@ const pw = useField('pw')
 
 const submit = handleSubmit(values => {
   alert(JSON.stringify(values, null, 2))
-  axios.post('api/users-mgmt/signin', values).then(res => console.log(res.data)).catch(err => console.log(err))
+  axios({
+    method: 'post',
+    headers: {'Content-Type' : 'application/json'},
+    url: 'api/users-mgmt/signin',
+    data: JSON.stringify(values, null)
+  }).then(function (res) {
+    if(!res.data) {
+      router.push({name: 'main'})
+    }
+  }).catch((e) => console.log(`${e.error}`))
 })
 
 </script>
