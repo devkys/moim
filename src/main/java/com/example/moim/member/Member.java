@@ -1,24 +1,20 @@
 package com.example.moim.member;
 
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
-@Entity
-@Table(name = "member")
-@Data
+@Entity(name="MEMBER")
 @Getter
 @Setter
-public class MemberDTO {
+@Data
+public class Member {
 
     @Id
-    @GeneratedValue
-    private Long seq;
     private String email;
     private String nickname;
     private String pw;
+    private String refresh_token;
 }

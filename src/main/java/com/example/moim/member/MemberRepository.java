@@ -1,19 +1,17 @@
 package com.example.moim.member;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
 
 @Repository
-public interface MemberRepository extends JpaRepository<MemberDTO, Long> {
+public interface MemberRepository extends JpaRepository<Member, String> {
     @Override
-    <S extends MemberDTO> S save(S entity);
+    boolean existsById(String s);
 
-    @Override
-    Optional<MemberDTO> findById(Long aLong);
+    @Query(value = "select * from MEMBER where email = :email and pw = :pw", nativeQuery = true)
+    Member login(String email, String pw);
 
-    @Override
-    boolean existsById(Long aLong);
 
 }

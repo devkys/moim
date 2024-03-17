@@ -1,9 +1,9 @@
 package com.example.moim.schedule;
 
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Controller
 @RequestMapping("api/sch_mgmt")
@@ -17,7 +17,9 @@ public class ScheduleController {
     }
 
     @GetMapping("all")
-    public Schedule getAllPost(String email) {
+    @ResponseBody
+    public List<Schedule> getAllPost(@RequestParam(value = "user") String email) {
+        return scheduleService.getAll(email);
 
     }
 

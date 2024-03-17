@@ -1,7 +1,7 @@
 package com.example.moim.schedule;
 
 import org.springframework.stereotype.Service;
-
+import java.util.List;
 @Service
 public class ScheduleService {
 
@@ -11,7 +11,8 @@ public class ScheduleService {
         this.scheduleRepository = scheduleRepository;
     }
 
-    public Schedule getAll(String email) {
+    public List<Schedule> getAll(String email) {
+        return scheduleRepository.getAll(email);
     }
 
 
