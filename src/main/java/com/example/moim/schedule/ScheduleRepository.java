@@ -11,4 +11,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     @Query(value="select * from SCHEDULE where email =:email", nativeQuery = true)
     List<Schedule> getAll(String email);
+
+    
 }

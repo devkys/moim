@@ -1,7 +1,7 @@
 const { defineConfig } = require('@vue/cli-service')
 module.exports = defineConfig({
   outputDir: '../src/main/resources/static',
-  indexPath: "../static/index.html",
+  indexPath: "index.html",
   devServer: {
     client: {
       overlay: false
@@ -9,7 +9,7 @@ module.exports = defineConfig({
     port: '5173',
     proxy: {
       "/api" : {
-        target : "http://192.168.0.11:8081",
+        target : "http://192.168.0.122:8999",
         changeOrigin: true
       }
     }

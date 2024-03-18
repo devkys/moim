@@ -24,14 +24,13 @@ const email = useField('email')
 const pw = useField('pw')
 
 const submit = handleSubmit(values => {
-  alert(JSON.stringify(values, null, 2))
   axios({
     method: 'post',
     headers: {'Content-Type' : 'application/json'},
     url: 'api/users-mgmt/signin',
     data: JSON.stringify(values, null)
   }).then(function (res) {
-    if(!res.data) {
+    if(res.data) {
       router.push({name: 'main'})
     }
   }).catch((e) => console.log(`${e.error}`))

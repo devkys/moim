@@ -11,9 +11,12 @@ public class ScheduleService {
         this.scheduleRepository = scheduleRepository;
     }
 
+    // 로그인 유저의 전체 스케쥴 리스트로 가져오기
     public List<Schedule> getAll(String email) {
         return scheduleRepository.getAll(email);
     }
+
+
 
 
 }

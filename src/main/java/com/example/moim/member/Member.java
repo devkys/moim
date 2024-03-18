@@ -17,4 +17,5 @@ public class Member {
     private String nickname;
     private String pw;
     private String refresh_token;
+    private String access_token;
 }

@@ -2,86 +2,33 @@
 import { onMounted} from "vue";
 import axios from "axios";
 import {ref} from "vue";
-
+import {useClipboard} from '@vueuse/core';
+import { useRoute } from 'vue-router';
 const schedule_list = ref();
-const dialog=ref(false);
+const add_dialog=ref(false);
+const { copy } = useClipboard();
+const invite_url="http://localhost:8081/api/sch_mgmt/invite-sch/"
 
-onMounted(async () => {
-  try {
-    const response = await axios.get('api/sch_mgmt/all?user=kks@gmail.com');
+const route = useRoute();
+
+onMounted(() => {
+    axios({
+    url: 'api/sch_mgmt/main-board='+route.query.email,
+    method: 'get',
+  }).then((response) => {
     if (response.status === 200) {
       schedule_list.value = response.data;
     }
-  } catch (error) {
-    console.error(error);
-  }
-
-
-  initMap();
-
-     /* global kakao */
-  // if (window.kakao && window.kakao.maps) {
-  //   initMap();
-  // } else {
-  //   const script = document.createElement('script');
-  //   script.onload = () => kakao.maps.load(initMap);
-  //   script.src = 'http://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey=6ef9d59fed893f2d0123c41617be5fcd';
-  //   document.head.appendChild(script);
-  // }
+  }).catch((e) => {
+    console.log(`${e.name}(${e.code} : ${e.message})`);
+  });
 });
 
-function initMap() {
-  var container = document.getElementById('map');
-  console.log('container:' + container);
-  var options = {
-    center: new kakao.maps.LatLng(33.450701, 126.570667),
-    level: 3
-  };
-
-  var map = new kakao.maps.Map(container, options);
-  map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
-}
-// onMounted(() => {
-//     axios({
-//     url: 'api/sch_mgmt/all?user=kks@gmail.com',
-//     method: 'get',
-//   }).then((response) => {
-//     if (response.status === 200) {
-//       schedule_list.value = response.data;
-//     }
-//   }).catch((e) => {
-//     console.log(`${e.name}(${e.code} : ${e.message})`);
-//   });
-//
-//   if(window.kakao && window.kakao.maps) {
-//     initMap();
-//   } else {
-//     const script = document.createElement('script');
-//     /* global kakao */
-//     script.onload = () => kakao.maps.load(initMap());
-//     script.src = 'http://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey=6ef9d59fed893f2d0123c41617be5fcd';
-//     document.head.appendChild(script);
-//   }
-// });
-//
-
-
-  // function initMap() {
-  //   var container = document.getElementById('map');
-  //   if(!container) return;
-  //   var options = {
-  //     center: new kakao.maps.LatLng(33.450701, 126.570667),
-  //     level: 3
-  //   };
-  //
-  //   var map = new kakao.maps.Map(container, options);
-  //   map.setMapTypeId(kakao.maps.MapTypeId.HYBRID);
-  // }
 </script>
 
 <template>
 
-  <h2>hena의 모임</h2>
+  <h2></h2>
   <div id="map"></div>
   <div class="list_div">
     <v-expansion-panels  variant="popout" >
@@ -89,7 +36,7 @@ function initMap() {
           v-for="schedule in schedule_list"
           :key="schedule"
           class="schedule_list"
-          expand-icon="expand"
+          icon="mdi-expand"
       >
         <v-expansion-panel-title>
           <h3> {{schedule.title }}</h3>
@@ -100,18 +47,19 @@ function initMap() {
           <span> {{ schedule.duedate }}</span>
           <span> 장소 </span>
           <span> {{schedule.place }}</span>
+          <span>{{schedule.seq}}</span>
+          <v-btn @click="copy(invite_url+schedule.seq)">초대링크</v-btn>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
-
-
   </div>
 
   <v-col cols="auto">
-    <v-btn icon="mdi-plus" fab absolute bottom elevation="11" @click="dialog = true"></v-btn>
+    <v-btn icon="mdi-plus" fab absolute bottom elevation="11" @click="add_dialog = true"></v-btn>
   </v-col>
+
   <v-dialog
-      v-model="dialog"
+      v-model="add_dialog"
       width="auto"
   >
     <v-card
@@ -146,6 +94,7 @@ function initMap() {
   padding: 8px 0px 10px 0px;
   border-radius: 8px;
 }
+
 #map {
   width: 300px;
   height: 300px;
