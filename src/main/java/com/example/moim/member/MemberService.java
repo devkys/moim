@@ -2,6 +2,8 @@ package com.example.moim.member;
 
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class MemberService {
 
@@ -16,7 +18,7 @@ public class MemberService {
     }
 
     public Member login(Member member) {
-
         return memberRepository.login(member.getEmail(), member.getPw());
     }
+
 }

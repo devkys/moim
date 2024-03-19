@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RoomRepository extends JpaRepository<Room,Long> {
 
+    @Override
+    <S extends Room> S save(S entity);
 }

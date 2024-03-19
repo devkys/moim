@@ -16,7 +16,4 @@ public class ScheduleService {
         return scheduleRepository.getAll(email);
     }
 
-
-
-
 }
