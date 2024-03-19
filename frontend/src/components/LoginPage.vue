@@ -4,19 +4,17 @@ import { useField, useForm } from 'vee-validate'
 import axios from "axios";
 import router from "@/router";
 
+
 const { handleSubmit } = useForm({
   validationSchema: {
     email (value) {
       if (value) return true
-
       return '이메일을 입력해주세요'
     },
     pw (value) {
       if(value) return true
-
       return '비밀번호를 입력 해주세요'
     },
-
   },
 })
 
@@ -31,7 +29,7 @@ const submit = handleSubmit(values => {
     data: JSON.stringify(values, null)
   }).then(function (res) {
     if(res.data) {
-      router.push({name: 'main'})
+      router.push({name: 'main', state: { email: res.data.email }})
     }
   }).catch((e) => console.log(`${e.error}`))
 })

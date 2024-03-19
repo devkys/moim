@@ -1,35 +1,123 @@
 <script setup>
-import { onMounted} from "vue";
+import { onMounted } from "vue";
 import axios from "axios";
 import {ref} from "vue";
 import {useClipboard} from '@vueuse/core';
-import { useRoute } from 'vue-router';
 const schedule_list = ref();
 const add_dialog=ref(false);
+const snackbar = ref(false);
+const invite_modal = ref(false);
 const { copy } = useClipboard();
 const invite_url="http://localhost:8081/api/sch_mgmt/invite-sch/"
 
-const route = useRoute();
+const { email } = history.state;
 
 onMounted(() => {
-    axios({
-    url: 'api/sch_mgmt/main-board='+route.query.email,
+  axios({
     method: 'get',
+    url: 'api/sch_mgmt/main-board?email=' + email,
   }).then((response) => {
-    if (response.status === 200) {
-      schedule_list.value = response.data;
+    schedule_list.value = response.data;
+    console.log(schedule_list);
+  }).catch((e) => {
+    console.log(`${e.name}(${e.code} : ${e.message})`);
+  })
+
+  axios({
+    method: 'get',
+    url: 'api/sch_mgmt/check-invite'
+  }).then((res) => {
+    if(res.data.isEmpty) {
+      console.log("nothing invite");
+    }
+    else {
+      snackbar.value = true;
     }
   }).catch((e) => {
     console.log(`${e.name}(${e.code} : ${e.message})`);
-  });
-});
+  })
+})
+
+function inviteAgree(e) {
+  axios({
+    method: 'post',
+    headers: {'Content-Type' : 'application/json'},
+    url: 'api/room_mgmt/agree-invite',
+    data: {
+      choose: e,
+      email: email
+    }
+  }).then((res) => {
+    alert("invite");
+    console.log(res.data);
+
+  }).catch((e) => console.log(`${e.error}`))
+}
 
 </script>
 
 <template>
 
-  <h2></h2>
-  <div id="map"></div>
+  <h2>r</h2>
+
+  <v-dialog
+      v-model="invite_modal"
+      max-width="400"
+      persistent
+  >
+    <template v-slot:activator="{ props: activatorProps }">
+      <v-btn
+          v-if="snackbar = true"
+          v-bind="activatorProps"
+          color="primary"
+          variant="text"
+          @click="invite_modal = true"
+      >
+        초대장 보기
+      </v-btn>
+    </template>
+    <v-card
+        prepend-icon="mdi-email-fast-outline"
+        text="초대를 수락하시겠습니까"
+        title="초대장"
+    >
+      <template v-slot:actions>
+        <v-spacer></v-spacer>
+
+        <v-btn @click="invite_modal = false; inviteAgree(false)">
+          거절
+        </v-btn>
+
+        <v-btn @click="invite_modal = false; inviteAgree(true) ">
+          수락
+        </v-btn>
+      </template>
+    </v-card>
+
+  </v-dialog>
+
+
+
+  <v-snackbar
+      v-model="snackbar"
+      vertical
+      top
+  >
+    <div class="invite">
+      유효한 초대장이 있습니다.
+    </div>
+
+    <template v-slot:actions>
+      <v-btn
+          color="primary"
+          variant="text"
+          @click="snackbar = false"
+      >
+        닫기
+      </v-btn>
+    </template>
+  </v-snackbar>
+
   <div class="list_div">
     <v-expansion-panels  variant="popout" >
       <v-expansion-panel

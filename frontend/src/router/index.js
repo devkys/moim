@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// import TourListView from '../views/TourListView.vue'
 import RegisterPage from "@/components/RegisterPage.vue";
 import LoginPage from "@/components/LoginPage.vue";
 import MainBoard from "@/components/MainBoard.vue";
