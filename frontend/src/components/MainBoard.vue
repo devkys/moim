@@ -11,56 +11,37 @@ const { copy } = useClipboard();
 const invite_url="http://localhost:8081/api/sch_mgmt/invite-sch/"
 
 const { user_info } = history.state;
-const invitedSchedule = ref();
 
+// 로그인한 유저가 직접 생성한 일정
 function getMy() {
   return axios.get('api/sch_mgmt/main-board?email=' + user_info.email);
 }
+
+// 다른 유저로부터 초대받은 일정
 function getInvited() {
   return axios.get('api/sch_mgmt/invite-board?email=' + user_info.email);
 }
 
+// 세션을 조회하여 초대 여부 확인
+function whetherIvite() {
+  return axios.get('api/sch_mgmt/check-invite?email=' + user_info.email);
+}
+
+// 컴포넌트가 마운트된 후 호출 될 콜백 함수
 onMounted(() => {
-  axios.all([getMy(), getInvited()])
-      .then(axios.spread(function (my, invited) {
-        /// both requests are now compolete
+  // 내 일정, 초대 일정 axios all로 멀티 요청
+  axios.all([getMy(), getInvited(), whetherIvite()])
+      .then(axios.spread(function (my, invited, whether) {
         schedule_list.value = my.data;
         invite_list.value = invited.data;
+
+        // 초대된 링크 여부 확인
+        if(whether.data.toString() === "true") {
+          invite_modal.value = true;
+        }
+
       }))
-      .catch((e)=>console.log(`${e.error} : ${e.message}`))
-
-  // 로그인한 유저 스케쥴 정보 가져오기
-  // axios({
-  //   method: 'get',
-  //   url: 'api/sch_mgmt/main-board?email=' + user_info.email,
-  // }).then((response) => {
-  //   schedule_list.value = response.data;
-  //   console.log(schedule_list);
-  // }).catch((e) => {
-  //   console.log(`${e.name}(${e.code} : ${e.message})`);
-  // })
-  //
-  // axios({
-  //   method: 'get',
-  //   url: 'api/sch_mgmt/invite-board?email=' + user_info.email,
-  // }).then((response) => {
-  //   invite_list.value = response.data;
-  //   console.log(invite_list);
-  // }).catch((e) => {
-  //   console.log(`${e.name}(${e.code} : ${e.message})`);
-  // })
-
-  // 초대 세션 여부 확인
-  axios({
-    method: 'get',
-    url: 'api/sch_mgmt/check-invite?email=' + user_info.email,
-  }).then((res) => {
-    if(res.data.toString() === "true") {
-      invite_modal.value = true;
-    }
-  }).catch((e) => {
-    console.log(`${e.name}(${e.code} : ${e.message})`);
-  })
+      .catch((e)=>console.log(`${e.error} : ${e.message}`));
 })
 
 
@@ -182,24 +163,12 @@ function inviteAgree(e) {
     </v-card>
   </v-dialog>
 
-  <div v-if="invitedSchedule">
-    {{ invitedSchedule }}
-  </div>
-
-<!-- 초대된 일정 -->
-  <div>
-
-  </div>
-
-
-
 </template>
 <style scoped>
 
 .list_div {
   width: 70%;
   margin: 0 auto;
-
 }
 
 .schedule_list {
