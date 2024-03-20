@@ -30,8 +30,16 @@ public class MemberController {
 
     @PostMapping("signup")
     @ResponseBody
-    public Member signup(@RequestBody Member member) {
-        return member;
+    public boolean signup(@RequestBody Member member) {
+        boolean duplicated = memberService.validateDuplicateEmail(member);
+        if(duplicated) {
+            System.out.println("이메일 중복");
+            return false;
+        } else {
+            System.out.println("유효한 이메일 아이디");
+            memberService.save(member);
+            return true;
+        }
     }
 
     @PostMapping("login")
@@ -40,7 +48,7 @@ public class MemberController {
         Member login_member = memberService.login(member);
 
         HttpSession session = request.getSession();
-        System.out.println("로그인 후의 스케쥴 아아ㅣ디 : " + session.getAttribute("sch_id"));
+        System.out.println("로그인 후의 스케쥴 아dl디 : " + session.getAttribute("sch_id"));
 
         if(login_member != null) {
 //            WebClient tokenClient = WebClient.builder().build();

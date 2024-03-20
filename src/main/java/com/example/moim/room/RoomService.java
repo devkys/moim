@@ -12,5 +12,9 @@ public class RoomService {
         return roomRepository.save(room);
     }
 
+    public Room alreadyEnter(String email, Long sch_number) {
+        return roomRepository.alreadyEnter(email, sch_number);
+    }
+
 
 }

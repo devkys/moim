@@ -2,6 +2,7 @@
 // import { ref} from 'vue'
 import { useField, useForm } from 'vee-validate'
 import axios from "axios";
+import router from "@/router";
 
 const { handleSubmit, handleReset } = useForm({
   validationSchema: {
@@ -33,8 +34,17 @@ const pw_confirm = useField('pw_confirm')
 const nickname = useField('nickname')
 
 const submit = handleSubmit(values => {
-  alert(JSON.stringify(values, null, 2))
-  axios.post('api/users-mgmt/signup', values).then(res => console.log(res.data)).catch(err => console.log(err))
+  // alert(JSON.stringify(values, null, 2))
+  axios.post('api/users-mgmt/signup', values)
+      .then(res =>  {
+        if(res.data) {
+          alert("회원 가입 성공! 로그인 페이지로 이동합니다.");
+          router.push({name :'login'})
+        } else {
+          alert("중복된 이메일. 새로운 이메일을 입력해주세요.");
+        }
+      })
+      .catch(err => console.log(err))
 })
 
 </script>

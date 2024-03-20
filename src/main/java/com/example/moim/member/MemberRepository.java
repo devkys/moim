@@ -19,5 +19,6 @@ public interface MemberRepository extends JpaRepository<Member, String> {
     @Query(value = "select nickname, email from MEMBER where nickname = :searchingString", nativeQuery = true)
     List<Member> search(String searchingString);
 
-
+    @Override
+    <S extends Member> S save(S entity);
 }

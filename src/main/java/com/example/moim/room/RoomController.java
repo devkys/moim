@@ -36,7 +36,7 @@ public class RoomController {
         System.out.println("true or false : " + rootNode.get("choose").asText());
 
         if(rootNode.get("choose").asText().equals("true")) {
-            room.setSch_number(sch_id);
+            room.setSch_number(Long.parseLong(sch_id.toString()));
             room.setEmail(email);
             roomService.insert(room);
         }

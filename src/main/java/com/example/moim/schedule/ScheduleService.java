@@ -26,5 +26,4 @@ public class ScheduleService {
         return scheduleRepository.getInvitedSchedule(email);
     }
 
-
 }

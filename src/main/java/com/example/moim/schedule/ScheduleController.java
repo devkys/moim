@@ -1,5 +1,7 @@
 package com.example.moim.schedule;
 
+import com.example.moim.room.Room;
+import com.example.moim.room.RoomService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpHeaders;
@@ -20,8 +22,11 @@ import static com.example.moim.member.MemberController.access_token;
 public class ScheduleController {
     private final ScheduleService scheduleService;
 
-    public ScheduleController(ScheduleService scheduleService) {
+    private final RoomService roomService;
+
+    public ScheduleController(ScheduleService scheduleService, RoomService roomService) {
         this.scheduleService = scheduleService;
+        this.roomService = roomService;
     }
 
     /*
@@ -73,13 +78,19 @@ public class ScheduleController {
 
         HttpSession session = req.getSession();
         Object sch_id = session.getAttribute("sch_id");
+
         // 세션 값 null
         if(sch_id == null) {
             System.out.println("초대장 없음");
+//            session.invalidate();
             return "false";
         } else {
-            // 세션 값 not null
-            if(scheduleService.getEmail(Long.parseLong(sch_id.toString())).equals(email)) {
+            /*
+                세션 값 not null
+             */
+            Room room = roomService.alreadyEnter(email, (Long.parseLong(sch_id.toString())));
+            if(scheduleService.getEmail(Long.parseLong(sch_id.toString())).equals(email) || room != null) {
+                // 세션 값은 있지만 이미 초대된 방의 링크를 클릭했을 때 세션 끊기
                 session.invalidate();
                 return "false";
             }

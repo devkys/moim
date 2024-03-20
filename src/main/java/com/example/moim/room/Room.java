@@ -23,7 +23,7 @@ public class Room {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long seq;
     private String email;
-    private String sch_number;
+    private Long sch_number;
     private String role;
 
 }
