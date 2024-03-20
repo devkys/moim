@@ -34,10 +34,11 @@ public class MemberController {
         return member;
     }
 
-    @PostMapping("signin")
+    @PostMapping("login")
     @ResponseBody
     public Member signin(@RequestBody Member member, HttpServletRequest request) throws JsonProcessingException {
         Member login_member = memberService.login(member);
+
         HttpSession session = request.getSession();
         System.out.println("로그인 후의 스케쥴 아아ㅣ디 : " + session.getAttribute("sch_id"));
 

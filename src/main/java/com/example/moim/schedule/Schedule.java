@@ -18,6 +18,7 @@ public class Schedule {
     @Id
     @GeneratedValue
     private Long seq;
+    private String email;
     private String title;
     private String content;
     private Date duedate;

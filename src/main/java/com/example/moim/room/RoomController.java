@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import lombok.Getter;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,29 +21,28 @@ public class RoomController {
 
     @PostMapping("agree-invite")
     @ResponseBody
-    public String inviteAgree(@RequestBody String data, HttpServletRequest req) throws JsonProcessingException {
-        System.out.println("DATAAAAAAAAAAAAAA" + data);
+    public void inviteAgree(@RequestBody String data, HttpServletRequest req) throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
-        System.out.println("data___" + data);
+        Room room = new Room();
+
         JsonNode rootNode = objectMapper.readTree(data);
-        System.out.println(rootNode + "rootnode");
-//        String choose = rootNode.get("choose").asText();
         String email = rootNode.get("email").asText();
 
+        HttpSession session = req.getSession();
+        String sch_id = (String) session.getAttribute("sch_id");
+        System.out.println("email: " + email);
+        System.out.println("초대받은 스케줄 아이디: " + sch_id);
+        System.out.println("request body String data: " + data);
+        System.out.println("true or false : " + rootNode.get("choose").asText());
+
         if(rootNode.get("choose").asText().equals("true")) {
-            Room room = new Room();
-            HttpSession session = req.getSession();
-            String sch_id = (String) session.getAttribute("sch_id");
             room.setSch_number(sch_id);
             room.setEmail(email);
-            Room created_room = roomService.insert(room);
-            System.out.println(created_room);
-            System.out.println("응답받은 데이터");
-            System.out.println(data);
+            roomService.insert(room);
         }
 
-        return "결과 받n음";
-
-    }
+        // 초대 세션 종료
+        session.invalidate();
+   }
 
 }

@@ -4,40 +4,68 @@ import axios from "axios";
 import {ref} from "vue";
 import {useClipboard} from '@vueuse/core';
 const schedule_list = ref();
+const invite_list = ref();
 const add_dialog=ref(false);
-const snackbar = ref(false);
 const invite_modal = ref(false);
 const { copy } = useClipboard();
 const invite_url="http://localhost:8081/api/sch_mgmt/invite-sch/"
 
-const { email } = history.state;
+const { user_info } = history.state;
+const invitedSchedule = ref();
+
+function getMy() {
+  return axios.get('api/sch_mgmt/main-board?email=' + user_info.email);
+}
+function getInvited() {
+  return axios.get('api/sch_mgmt/invite-board?email=' + user_info.email);
+}
 
 onMounted(() => {
-  axios({
-    method: 'get',
-    url: 'api/sch_mgmt/main-board?email=' + email,
-  }).then((response) => {
-    schedule_list.value = response.data;
-    console.log(schedule_list);
-  }).catch((e) => {
-    console.log(`${e.name}(${e.code} : ${e.message})`);
-  })
+  axios.all([getMy(), getInvited()])
+      .then(axios.spread(function (my, invited) {
+        /// both requests are now compolete
+        schedule_list.value = my.data;
+        invite_list.value = invited.data;
+      }))
+      .catch((e)=>console.log(`${e.error} : ${e.message}`))
 
+  // 로그인한 유저 스케쥴 정보 가져오기
+  // axios({
+  //   method: 'get',
+  //   url: 'api/sch_mgmt/main-board?email=' + user_info.email,
+  // }).then((response) => {
+  //   schedule_list.value = response.data;
+  //   console.log(schedule_list);
+  // }).catch((e) => {
+  //   console.log(`${e.name}(${e.code} : ${e.message})`);
+  // })
+  //
+  // axios({
+  //   method: 'get',
+  //   url: 'api/sch_mgmt/invite-board?email=' + user_info.email,
+  // }).then((response) => {
+  //   invite_list.value = response.data;
+  //   console.log(invite_list);
+  // }).catch((e) => {
+  //   console.log(`${e.name}(${e.code} : ${e.message})`);
+  // })
+
+  // 초대 세션 여부 확인
   axios({
     method: 'get',
-    url: 'api/sch_mgmt/check-invite'
+    url: 'api/sch_mgmt/check-invite?email=' + user_info.email,
   }).then((res) => {
-    if(res.data.isEmpty) {
-      console.log("nothing invite");
-    }
-    else {
-      snackbar.value = true;
+    if(res.data.toString() === "true") {
+      invite_modal.value = true;
     }
   }).catch((e) => {
     console.log(`${e.name}(${e.code} : ${e.message})`);
   })
 })
 
+
+// 초대받은 세션이 존재하면 활성화되는 함수
+// 초대 수락 or 거절
 function inviteAgree(e) {
   axios({
     method: 'post',
@@ -45,10 +73,9 @@ function inviteAgree(e) {
     url: 'api/room_mgmt/agree-invite',
     data: {
       choose: e,
-      email: email
+      email: user_info.email
     }
   }).then((res) => {
-    alert("invite");
     console.log(res.data);
 
   }).catch((e) => console.log(`${e.error}`))
@@ -58,32 +85,21 @@ function inviteAgree(e) {
 
 <template>
 
-  <h2>r</h2>
+  <h2>{{user_info.nickname}}</h2>
 
+<!--  초대 수락 or 거절 modal -->
   <v-dialog
       v-model="invite_modal"
       max-width="400"
       persistent
   >
-    <template v-slot:activator="{ props: activatorProps }">
-      <v-btn
-          v-if="snackbar = true"
-          v-bind="activatorProps"
-          color="primary"
-          variant="text"
-          @click="invite_modal = true"
-      >
-        초대장 보기
-      </v-btn>
-    </template>
     <v-card
         prepend-icon="mdi-email-fast-outline"
         text="초대를 수락하시겠습니까"
-        title="초대장"
+        title="유효한 초대"
     >
       <template v-slot:actions>
         <v-spacer></v-spacer>
-
         <v-btn @click="invite_modal = false; inviteAgree(false)">
           거절
         </v-btn>
@@ -93,30 +109,7 @@ function inviteAgree(e) {
         </v-btn>
       </template>
     </v-card>
-
   </v-dialog>
-
-
-
-  <v-snackbar
-      v-model="snackbar"
-      vertical
-      top
-  >
-    <div class="invite">
-      유효한 초대장이 있습니다.
-    </div>
-
-    <template v-slot:actions>
-      <v-btn
-          color="primary"
-          variant="text"
-          @click="snackbar = false"
-      >
-        닫기
-      </v-btn>
-    </template>
-  </v-snackbar>
 
   <div class="list_div">
     <v-expansion-panels  variant="popout" >
@@ -142,6 +135,29 @@ function inviteAgree(e) {
     </v-expansion-panels>
   </div>
 
+  <div class="invite_div">
+    <v-expansion-panels  variant="popout" >
+      <v-expansion-panel
+          v-for="schedule in invite_list"
+          :key="schedule"
+          class="schedule_list"
+          icon="mdi-expand"
+      >
+        <v-expansion-panel-title>
+          <h3> {{schedule.title }}</h3>
+        </v-expansion-panel-title>
+        <v-expansion-panel-text>
+          <strong> {{schedule.content}} </strong> <br>
+          <span> 일정 </span>
+          <span> {{ schedule.duedate }}</span>
+          <span> 장소 </span>
+          <span> {{schedule.place }}</span>
+          <span>{{schedule.seq}}</span>
+        </v-expansion-panel-text>
+      </v-expansion-panel>
+    </v-expansion-panels>
+  </div>
+
   <v-col cols="auto">
     <v-btn icon="mdi-plus" fab absolute bottom elevation="11" @click="add_dialog = true"></v-btn>
   </v-col>
@@ -160,11 +176,22 @@ function inviteAgree(e) {
         <v-btn
             class="ms-auto"
             text="Ok"
-            @click="dialog = false"
+            @click="add_dialog = false"
         ></v-btn>
       </template>
     </v-card>
   </v-dialog>
+
+  <div v-if="invitedSchedule">
+    {{ invitedSchedule }}
+  </div>
+
+<!-- 초대된 일정 -->
+  <div>
+
+  </div>
+
+
 
 </template>
 <style scoped>

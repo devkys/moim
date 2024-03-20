@@ -2,6 +2,8 @@ package com.example.moim.schedule;
 
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Optional;
+
 @Service
 public class ScheduleService {
 
@@ -15,5 +17,14 @@ public class ScheduleService {
     public List<Schedule> getAll(String email) {
         return scheduleRepository.getAll(email);
     }
+
+    public String getEmail(Long id) {
+        return scheduleRepository.getEmail(id);
+    }
+
+    public List<Schedule> getInvitedSchedule(String email) {
+        return scheduleRepository.getInvitedSchedule(email);
+    }
+
 
 }

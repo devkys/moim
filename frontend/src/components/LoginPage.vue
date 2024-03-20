@@ -4,7 +4,6 @@ import { useField, useForm } from 'vee-validate'
 import axios from "axios";
 import router from "@/router";
 
-
 const { handleSubmit } = useForm({
   validationSchema: {
     email (value) {
@@ -25,11 +24,11 @@ const submit = handleSubmit(values => {
   axios({
     method: 'post',
     headers: {'Content-Type' : 'application/json'},
-    url: 'api/users-mgmt/signin',
+    url: 'api/users-mgmt/login',
     data: JSON.stringify(values, null)
   }).then(function (res) {
     if(res.data) {
-      router.push({name: 'main', state: { email: res.data.email }})
+      router.push({name: 'main', state: { user_info: res.data }})
     }
   }).catch((e) => console.log(`${e.error}`))
 })

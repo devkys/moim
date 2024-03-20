@@ -7,6 +7,8 @@ import jakarta.persistence.Id;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.DynamicInsert;
 import org.springframework.stereotype.Component;
 
 @Entity(name="ROOM")
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Component;
 @Setter
 @Data
 @Component
+@DynamicInsert
 public class Room {
 
     @Id
