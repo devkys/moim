@@ -26,4 +26,10 @@ public class ScheduleService {
         return scheduleRepository.getInvitedSchedule(email);
     }
 
+    public Schedule save(Schedule schedule) {
+        return scheduleRepository.save(schedule);
+    }
+
+
+
 }

@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Component;
 
-@Entity(name="MEMBER")
+@Entity(name="member")
 @Getter
 @Setter
 @Data

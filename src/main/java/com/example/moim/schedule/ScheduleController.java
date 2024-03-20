@@ -99,6 +99,14 @@ public class ScheduleController {
         }
     }
 
+    @PostMapping("save")
+    @ResponseBody
+    public boolean SaveSchedule(@RequestBody Schedule reqData){
+        System.out.println("생성하고 싶은 일정 " + reqData);
+        scheduleService.save(reqData);
+        return true;
+    }
+
 
 
 

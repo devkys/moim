@@ -1,16 +1,19 @@
 <script setup>
-import { onMounted } from "vue";
+import {onMounted} from "vue";
 import axios from "axios";
 import {ref} from "vue";
-import {useClipboard} from '@vueuse/core';
+import {useClipboard, useDateFormat} from '@vueuse/core';
+import {useField, useForm} from "vee-validate";
+import router from "@/router";
+
 const schedule_list = ref();
 const invite_list = ref();
-const add_dialog=ref(false);
+const add_dialog = ref(false);
 const invite_modal = ref(false);
-const { copy } = useClipboard();
-const invite_url="http://localhost:8081/api/sch_mgmt/invite-sch/"
+const {copy} = useClipboard();
+const invite_url = "http://localhost:8081/api/sch_mgmt/invite-sch/"
 
-const { user_info } = history.state;
+const {user_info} = history.state;
 
 // 로그인한 유저가 직접 생성한 일정
 function getMy() {
@@ -27,6 +30,47 @@ function whetherIvite() {
   return axios.get('api/sch_mgmt/check-invite?email=' + user_info.email);
 }
 
+const {handleSubmit} = useForm({
+  validationSchema: {
+    title(value) {
+      if (value?.length <= 20) return true
+
+      return '10자 이하로 입력해주세요.'
+    },
+    content(value) {
+      if (value?.length <= 30) return true
+
+      return '30자 이하로 입력해주세요.'
+    },
+    place(value) {
+      if (value?.length <= 50) return true
+
+      return '50자 이하로 입력해주세요,';
+    },
+  }
+})
+
+const title = useField('title');
+const content = useField('content');
+const place = useField('place');
+const duedate = useField('duedate');
+
+const scheduleSave = handleSubmit(values => {
+  values.email = user_info.email;
+  alert(JSON.stringify(values, null, 2))
+  axios.post('api/sch_mgmt/save', values)
+      .then(res => {
+        if (res.data) {
+
+          router.go(0);
+        } else {
+          alert('error 발생');
+        }
+      })
+      .catch(err => console.log(err))
+})
+
+
 // 컴포넌트가 마운트된 후 호출 될 콜백 함수
 onMounted(() => {
   // 내 일정, 초대 일정 axios all로 멀티 요청
@@ -36,12 +80,12 @@ onMounted(() => {
         invite_list.value = invited.data;
 
         // 초대된 링크 여부 확인
-        if(whether.data.toString() === "true") {
+        if (whether.data.toString() === "true") {
           invite_modal.value = true;
         }
 
       }))
-      .catch((e)=>console.log(`${e.error} : ${e.message}`));
+      .catch((e) => console.log(`${e.error} : ${e.message}`));
 })
 
 
@@ -50,7 +94,7 @@ onMounted(() => {
 function inviteAgree(e) {
   axios({
     method: 'post',
-    headers: {'Content-Type' : 'application/json'},
+    headers: {'Content-Type': 'application/json'},
     url: 'api/room_mgmt/agree-invite',
     data: {
       choose: e,
@@ -58,17 +102,19 @@ function inviteAgree(e) {
     }
   }).then((res) => {
     console.log(res.data);
-
+    router.go(0);
   }).catch((e) => console.log(`${e.error}`))
 }
 
 </script>
 
 <template>
+  <div>
 
-  <h2>{{user_info.nickname}}</h2>
+  </div>
+  <h2>{{ user_info.nickname }}님의 일정</h2>
 
-<!--  초대 수락 or 거절 modal -->
+  <!--  초대 수락 or 거절 modal -->
   <v-dialog
       v-model="invite_modal"
       max-width="400"
@@ -93,7 +139,7 @@ function inviteAgree(e) {
   </v-dialog>
 
   <div class="list_div">
-    <v-expansion-panels  variant="popout" >
+    <v-expansion-panels variant="popout">
       <v-expansion-panel
           v-for="schedule in schedule_list"
           :key="schedule"
@@ -101,15 +147,15 @@ function inviteAgree(e) {
           icon="mdi-expand"
       >
         <v-expansion-panel-title>
-          <h3> {{schedule.title }}</h3>
+          <h3> {{ schedule.title }}</h3>
         </v-expansion-panel-title>
         <v-expansion-panel-text>
-          <strong> {{schedule.content}} </strong> <br>
+          <strong> {{ schedule.content }} </strong> <br>
           <span> 일정 </span>
-          <span> {{ schedule.duedate }}</span>
+          <span> {{useDateFormat(schedule.duedate, 'YYYY-MM-DD HH:mm:ss') }}</span>
           <span> 장소 </span>
-          <span> {{schedule.place }}</span>
-          <span>{{schedule.seq}}</span>
+          <span> {{ schedule.place }}</span>
+          <span>{{ schedule.seq }}</span>
           <v-btn @click="copy(invite_url+schedule.seq)">초대링크</v-btn>
         </v-expansion-panel-text>
       </v-expansion-panel>
@@ -117,7 +163,7 @@ function inviteAgree(e) {
   </div>
 
   <div class="invite_div">
-    <v-expansion-panels  variant="popout" >
+    <v-expansion-panels variant="popout">
       <v-expansion-panel
           v-for="schedule in invite_list"
           :key="schedule"
@@ -125,49 +171,112 @@ function inviteAgree(e) {
           icon="mdi-expand"
       >
         <v-expansion-panel-title>
-          <h3> {{schedule.title }}</h3>
+          <h3> {{ schedule.title }}</h3>
         </v-expansion-panel-title>
         <v-expansion-panel-text>
-          <strong> {{schedule.content}} </strong> <br>
+          <strong> {{ schedule.content }} </strong> <br>
           <span> 일정 </span>
-          <span> {{ schedule.duedate }}</span>
+          <span> {{useDateFormat(schedule.duedate, 'YYYY-MM-DD HH:mm:ss') }}</span>
           <span> 장소 </span>
-          <span> {{schedule.place }}</span>
-          <span>{{schedule.seq}}</span>
+          <span> {{ schedule.place }}</span>
+          <span>{{ schedule.seq }}</span>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
   </div>
 
-  <v-col cols="auto">
-    <v-btn icon="mdi-plus" fab absolute bottom elevation="11" @click="add_dialog = true"></v-btn>
-  </v-col>
 
   <v-dialog
       v-model="add_dialog"
       width="auto"
   >
+    <template v-slot:activator="{ props: activatorProps}">
+      <v-col cols="auto">
+        <v-btn icon="mdi-plus" fab bottom right elevation="11" @click="add_dialog = true"
+               v-bind="activatorProps"></v-btn>
+      </v-col>
+    </template>
+
     <v-card
-        max-width="800"
+        width="800"
         prepend-icon="mdi-plus"
-        text="Your application will relaunch automatically after the update is complete."
         title="일정 추가하기"
     >
-      <template v-slot:actions>
-        <v-btn
-            class="ms-auto"
-            text="Ok"
-            @click="add_dialog = false"
-        ></v-btn>
-      </template>
+      <v-card-text>
+        <form @submit.prevent="scheduleSave">
+          <v-row dense>
+            <v-col>
+              <v-text-field
+                  required
+                  label="일정 제목"
+                  v-model="title.value.value"
+                  :error-messages="title.errorMessage.value"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+
+          <v-row dense>
+            <v-col>
+              <v-text-field
+                  v-model="content.value.value"
+                  label="일정 내용"
+                  :error-messages="content.errorMessage.value"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+
+          <v-row dense>
+            <v-col>
+              <v-text-field
+                  label="장소"
+                  v-model="place.value.value"
+                  :error-messages="place.errorMessage.value"
+              ></v-text-field>
+            </v-col>
+            <input type="datetime-local"
+                   v-model="duedate.value.value"
+            >
+          </v-row>
+          <v-divider></v-divider>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn
+                text="닫기"
+                variant="plain"
+                @click="add_dialog = false"
+            ></v-btn>
+
+            <v-btn
+                color="primary"
+                type="submit"
+                text="저장"
+                variant="tonal"
+            ></v-btn>
+          </v-card-actions>
+
+        </form>
+      </v-card-text>
     </v-card>
+
   </v-dialog>
+
+
 
 </template>
 <style scoped>
 
+h2 {
+  text-align: center;
+}
+
 .list_div {
-  width: 70%;
+  width: 50%;
+  margin: 0 auto;
+  margin-bottom: 100px;
+}
+
+.invite_div {
+  width: 50%;
   margin: 0 auto;
 }
 

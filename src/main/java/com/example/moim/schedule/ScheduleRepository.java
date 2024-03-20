@@ -10,15 +10,18 @@ import java.util.Optional;
 @Repository
 public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
-    @Query(value="select * from SCHEDULE where email =:email", nativeQuery = true)
+    @Query(value="select * from schedule where email =:email", nativeQuery = true)
     List<Schedule> getAll(String email);
 
     @Override
     List<Schedule> findAllById(Iterable<Long> longs);
 
-    @Query(value="select email from SCHEDULE where seq =:seq", nativeQuery = true)
+    @Query(value="select email from schedule where seq =:seq", nativeQuery = true)
     String getEmail(Long seq);
 
     @Query(value="select * from schedule where seq in (select sch_number from room where email=:email)", nativeQuery = true)
     List<Schedule> getInvitedSchedule(String email);
+
+    @Override
+    <S extends Schedule> S save(S entity);
 }

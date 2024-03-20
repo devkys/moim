@@ -2,6 +2,7 @@ package com.example.moim.schedule;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import lombok.Data;
 import lombok.Getter;
@@ -9,14 +10,14 @@ import lombok.Setter;
 
 import java.util.Date;
 
-@Entity(name="SCHEDULE")
+@Entity(name="schedule")
 @Getter
 @Setter
 @Data
 public class Schedule {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long seq;
     private String email;
     private String title;
