@@ -30,6 +30,8 @@ public class ScheduleService {
         return scheduleRepository.save(schedule);
     }
 
-
+    public void deletebyId(Long s_id) {
+        scheduleRepository.deleteById(s_id);
+    }
 
 }

@@ -107,8 +107,14 @@ public class ScheduleController {
         return true;
     }
 
+    @PostMapping("deleteOne")
+    @ResponseBody
+    public int deleteSchedule(@RequestBody String scheduleId) {
 
+        System.out.println("스케쥴 삭제" + scheduleId);
+        scheduleService.deletebyId(Long.parseLong(scheduleId));
 
-
+        return 1;
+    }
 
 }
