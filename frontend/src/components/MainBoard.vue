@@ -1,11 +1,12 @@
 <script setup>
-import {onMounted} from "vue";
+import {onMounted, watchEffect} from "vue";
 import axios from "axios";
 import {ref} from "vue";
 import {useClipboard, useDateFormat} from '@vueuse/core';
 import {useField, useForm} from "vee-validate";
 import router from "@/router";
-
+import webstomp from "webstomp-client";
+import SockJS from "sockjs-client";
 const schedule_list = ref();
 const invite_list = ref();
 const add_dialog = ref(false);
@@ -16,22 +17,11 @@ const drawer = ref(null);
 const sch_info = ref([]);
 const message = "";
 const {user_info} = history.state;
+const message_list = ref();
 // const user_email = history.state.email;
 
-const ws = new WebSocket("ws://localhost:8081");
-
-ws.onopen = function(event) {
-  ws.send("Client Messsage");
-  console.log(event);
-}
-
-ws.onmessage = function(event) {
-  console.log("SErver MEssage" , event.data);
-}
-
-ws.onerror = function(event) {
-  console.log("Server error Message : ", event.data);
-}
+const sock = new SockJS("http://localhost:8081/stomp/chat");
+const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client를 내어준다.
 
 // 로그인한 유저가 직접 생성한 일정
 function getMy() {
@@ -48,6 +38,15 @@ function whetherIvite() {
   return axios.get('api/sch_mgmt/check-invite?email=' + user_info.email);
 }
 
+function getMessage(roomId) {
+  axios.get('api/chat/getAll?roomId=' + roomId)
+      .then((res) => {
+        // alert(`${res.data}`)
+        message_list.value = res.data;
+  })
+
+}
+
 function deleteSchedule(s_id) {
   alert(s_id)
   axios.post('api/sch_mgmt/deleteOne', s_id)
@@ -60,6 +59,30 @@ function deleteSchedule(s_id) {
       .catch((e) => console.log(`${e.error} : ${e.message}`))
 }
 
+watchEffect(() => {
+  if (drawer.value === true) {
+    // alert('맞음')
+    // alert(`${sch_info.value.seq}`)
+    // connection이 맺어지면 실행
+    getMessage(sch_info.value.seq);
+    client.connect({}, ()=>{
+
+      // 메시지 보내기
+      client.send('/publish/chat/join' ,{}, JSON.stringify({chatRoomId: 1, writer: history.state.email}));
+
+      // 메시지 받기
+      client.subscribe('/subscribe/chat/room/1' + function(chat){
+        const contents = JSON.parse(chat.body);
+        alert(contents.message + contents.writer)
+      })
+
+    })
+  }
+  if(drawer.value === false && sch_info.value.seq != null) {
+    client.disconnect();
+  }
+
+});
 const {handleSubmit} = useForm({
   validationSchema: {
     title(value) {
@@ -101,7 +124,6 @@ const scheduleSave = handleSubmit(values => {
 
 // 컴포넌트가 마운트된 후 호출 될 콜백 함수
 onMounted(() => {
-  alert(window.location.host);
 
   // 내 일정, 초대 일정 axios all로 멀티 요청
   axios.all([getMy(), getInvited(), whetherIvite()])
@@ -194,6 +216,7 @@ function inviteAgree(e) {
                   @click.stop="drawer = !drawer"
                   v-on:click="sch_info.seq = schedule.seq"
               ></v-icon>
+              {{drawer}}
             </div>
           </v-hover>
         </v-expansion-panel-title>
@@ -317,12 +340,16 @@ function inviteAgree(e) {
       <v-divider></v-divider>
 
       <v-list
-          height="800"
+          height="500"
           overflow-y="auto"
           class="chat_div"
+          v-for="message in message_list"
+          :key="message"
       >
+        <v-list-item style="background-color: red; margin-bottom: 2px;">
+          {{message.content}}
+        </v-list-item>
 
-<!--        말풍선 div-->
       </v-list>
       <v-divider></v-divider>
 
@@ -345,7 +372,6 @@ function inviteAgree(e) {
       </v-list>
     </v-navigation-drawer>
   </v-layout>
-
 
 </template>
 <style scoped>
