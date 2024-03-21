@@ -1,21 +1,17 @@
 package com.example.moim.message;
 
-
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+;
 
 @Controller
 public class MessageController {
 
-    @MessageMapping("/recieve")
+    @GetMapping("/chat")
+    public String chatGET(){
+        System.out.println("@MessageController, chatGET()");
 
-    @SendTo("/send")
-
-    public void SocketHandler() {
-        System.out.println("Handler");
+        return "chat";
     }
-
 
 }
