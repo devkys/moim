@@ -7,14 +7,16 @@ import jakarta.persistence.Id;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
 
-@Entity(name = "message")
+
 @Getter
 @Setter
-@Data
-public class Message {
+@Entity(name="chat")
+@Component
+public class Chat {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,7 +24,7 @@ public class Message {
     private String email;
     private Long room_id;
     private String content;
-    private Timestamp timestamp;
+    private Timestamp send_time;
 
 
 }

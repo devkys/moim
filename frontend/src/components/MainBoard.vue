@@ -1,12 +1,12 @@
 <script setup>
-import {onMounted, watchEffect} from "vue";
 import axios from "axios";
-import {ref} from "vue";
+import {ref, watchEffect} from "vue";
 import {useClipboard, useDateFormat} from '@vueuse/core';
 import {useField, useForm} from "vee-validate";
 import router from "@/router";
 import webstomp from "webstomp-client";
 import SockJS from "sockjs-client";
+
 const schedule_list = ref();
 const invite_list = ref();
 const add_dialog = ref(false);
@@ -15,15 +15,36 @@ const {copy} = useClipboard();
 const invite_url = "http://localhost:8081/api/sch_mgmt/invite-sch/"
 const drawer = ref(null);
 const sch_info = ref([]);
-const message = "";
+const send_msg = ref();
 const {user_info} = history.state;
 const message_list = ref();
+const chat_result = ref();
 // const user_email = history.state.email;
 
 const sock = new SockJS("http://localhost:8081/stomp/chat");
 const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client를 내어준다.
 
-// 로그인한 유저가 직접 생성한 일정
+client.connect({}, () => {
+  watchEffect(() => {
+    if(drawer.value === true){
+      client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
+        chat_result.value = JSON.parse(chat.body);
+      })
+    }
+    if(drawer.value === false && sch_info.value.seq != null) {
+      client.disconnect()
+    }
+  })
+})
+const chat = () => {
+  alert("click!!!")
+  alert(`${chat_result.value} `)
+
+  client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, content: send_msg.value }));
+
+}
+
+// 로그인한 유저가 생성한 일정
 function getMy() {
   return axios.get('api/sch_mgmt/main-board?email=' + user_info.email);
 }
@@ -38,51 +59,43 @@ function whetherIvite() {
   return axios.get('api/sch_mgmt/check-invite?email=' + user_info.email);
 }
 
-function getMessage(roomId) {
-  axios.get('api/chat/getAll?roomId=' + roomId)
-      .then((res) => {
-        // alert(`${res.data}`)
-        message_list.value = res.data;
-  })
+// 내 일정, 초대 일정 axios all로 멀티 요청
+axios.all([getMy(), getInvited(), whetherIvite()])
+    .then(axios.spread(function (my, invited, whether) {
+      schedule_list.value = my.data;
+      invite_list.value = invited.data;
 
-}
+      // 초대된 링크 여부 확인
+      if (whether.data.toString() === "true") {
+        invite_modal.value = true;
+      }
+    }))
+    .catch((e) => console.log(`${e.error} : ${e.message}`));
 
+// function getMessage(roomId) {
+//   axios.get('api/chat/getAll?roomId=' + roomId)
+//       .then((res) => {
+//         // alert(`${res.data}`)
+//         message_list.value = res.data;
+//   })
+//
+// }
+
+// 일정 삭제 (내가 생성한 것만)
 function deleteSchedule(s_id) {
-  alert(s_id)
+
   axios.post('api/sch_mgmt/deleteOne', s_id)
       .then((res) => {
         if (res.data.value === 1) {
-          alert("삭제 완!!!!!!!!!!!!");
-          router.go(0);
+          alert("삭제 완료");
+          router.go(0); // 새로고침
         }
       })
       .catch((e) => console.log(`${e.error} : ${e.message}`))
 }
 
-watchEffect(() => {
-  if (drawer.value === true) {
-    // alert('맞음')
-    // alert(`${sch_info.value.seq}`)
-    // connection이 맺어지면 실행
-    getMessage(sch_info.value.seq);
-    client.connect({}, ()=>{
 
-      // 메시지 보내기
-      client.send('/publish/chat/join' ,{}, JSON.stringify({chatRoomId: 1, writer: history.state.email}));
 
-      // 메시지 받기
-      client.subscribe('/subscribe/chat/room/1' + function(chat){
-        const contents = JSON.parse(chat.body);
-        alert(contents.message + contents.writer)
-      })
-
-    })
-  }
-  if(drawer.value === false && sch_info.value.seq != null) {
-    client.disconnect();
-  }
-
-});
 const {handleSubmit} = useForm({
   validationSchema: {
     title(value) {
@@ -122,23 +135,6 @@ const scheduleSave = handleSubmit(values => {
 })
 
 
-// 컴포넌트가 마운트된 후 호출 될 콜백 함수
-onMounted(() => {
-
-  // 내 일정, 초대 일정 axios all로 멀티 요청
-  axios.all([getMy(), getInvited(), whetherIvite()])
-      .then(axios.spread(function (my, invited, whether) {
-        schedule_list.value = my.data;
-        invite_list.value = invited.data;
-
-        // 초대된 링크 여부 확인
-        if (whether.data.toString() === "true") {
-          invite_modal.value = true;
-        }
-
-      }))
-      .catch((e) => console.log(`${e.error} : ${e.message}`));
-})
 
 // 초대받은 세션이 존재하면 활성화되는 함수
 // 초대 수락 or 거절
@@ -189,6 +185,7 @@ function inviteAgree(e) {
     </v-card>
   </v-dialog>
 
+<!--  로그인한 유저의 모든 일정 리스트 -->
   <div class="list_div">
     <v-expansion-panels variant="popout">
       <v-expansion-panel
@@ -210,10 +207,8 @@ function inviteAgree(e) {
 
             <div class="justify-center align-center">
               <v-icon
-                  v-bind="props"
-                  :class="{'on-hover' : isHovering}"
                   icon="mdi-message-text-outline"
-                  @click.stop="drawer = !drawer"
+                  @click="drawer = !drawer"
                   v-on:click="sch_info.seq = schedule.seq"
               ></v-icon>
               {{drawer}}
@@ -244,6 +239,16 @@ function inviteAgree(e) {
       >
         <v-expansion-panel-title>
           <h3> {{ schedule.title }}</h3>
+          <div class="justify-center align-center">
+            <v-icon
+                v-bind="props"
+                :class="{'on-hover' : isHovering}"
+                icon="mdi-message-text-outline"
+                @click.stop="drawer = !drawer"
+                v-on:click="sch_info.seq = schedule.seq"
+            ></v-icon>
+            {{drawer}}
+          </div>
         </v-expansion-panel-title>
         <v-expansion-panel-text>
           <strong> {{ schedule.content }} </strong> <br>
@@ -349,27 +354,27 @@ function inviteAgree(e) {
         <v-list-item style="background-color: red; margin-bottom: 2px;">
           {{message.content}}
         </v-list-item>
-
       </v-list>
+ddd {{chat_result}}
       <v-divider></v-divider>
-
       <v-list>
         <v-form>
           <v-container>
             <v-row>
               <v-col cols="12">
                 <v-text-field
-                    v-model="message"
-                    :append-icon="'mdi-send'"
+                    v-model="send_msg"
                     label="채팅 메시지"
                     type="text"
                     variant="filled"
                 ></v-text-field>
+                <v-icon icon="mdi-send" @click="chat()"></v-icon>
               </v-col>
             </v-row>
           </v-container>
         </v-form>
       </v-list>
+
     </v-navigation-drawer>
   </v-layout>
 
