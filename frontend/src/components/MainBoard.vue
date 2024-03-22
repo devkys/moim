@@ -29,6 +29,7 @@ client.connect({}, () => {
     if(drawer.value === true){
       client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
         chat_result.value += JSON.parse(chat.body);
+        alert(JSON.stringify(chat_result));
       })
     }
     if(drawer.value === false && sch_info.value.seq != null) {
