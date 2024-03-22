@@ -18,7 +18,7 @@ const sch_info = ref([]);
 const send_msg = ref();
 const {user_info} = history.state;
 const message_list = ref();
-const chat_result = ref();
+const chat_result = ref({});
 // const user_email = history.state.email;
 
 const sock = new SockJS("http://localhost:8081/stomp/chat");
@@ -28,7 +28,7 @@ client.connect({}, () => {
   watchEffect(() => {
     if(drawer.value === true){
       client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
-        chat_result.value = JSON.parse(chat.body);
+        chat_result.value += JSON.parse(chat.body);
       })
     }
     if(drawer.value === false && sch_info.value.seq != null) {
@@ -355,7 +355,8 @@ function inviteAgree(e) {
           {{message.content}}
         </v-list-item>
       </v-list>
-ddd {{chat_result}}
+ {{chat_result}}
+
       <v-divider></v-divider>
       <v-list>
         <v-form>
