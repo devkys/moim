@@ -1,13 +1,14 @@
 <script setup>
 import axios from "axios";
-import {ref, watch} from "vue";
+import {reactive, ref, watch} from "vue";
 import {now, useClipboard, useDateFormat} from '@vueuse/core';
 import {useField, useForm} from "vee-validate";
 import router from "@/router";
 import webstomp from "webstomp-client";
 import SockJS from "sockjs-client";
-// import {snakeCase} from "eslint-plugin-vue/lib/utils/casing";
-//
+import {useDropzone} from "vue3-dropzone";
+
+// import multiavatar from "@multiavatar/multiavatar";
 const schedule_list = ref();
 const invite_list = ref();
 const add_dialog = ref(false);
@@ -22,6 +23,32 @@ const message_list = ref();
 const chat_array = ref([]);
 // const user_email = history.state.email;
 
+const state = reactive({
+  files: [],
+});
+
+const { getRootProps, isDragActive, ...rest } = useDropzone({
+  onDrop,
+});
+
+watch(state, () => {
+  console.log('state', state);
+});
+
+watch(isDragActive, () => {
+  console.log('isDragActive', isDragActive.value, rest);
+});
+
+function onDrop(acceptFiles, rejectReasons) {
+  console.log(acceptFiles);
+  console.log(rejectReasons);
+  state.files = acceptFiles;
+}
+
+function handleClickDeleteFile(index) {
+  state.files.splice(index, 1);
+}
+
 const sock = new SockJS("http://localhost:8081/stomp/chat");
 const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client를 내어준다.
 
@@ -29,9 +56,9 @@ let subscription = null; // 구독을 추적하기 위한 변수
 
 client.connect({}, () => {
 
-
   watch(drawer, () => {
     if (drawer.value === true) {
+      getMessage(sch_info.value.seq);
       if (!subscription) {
         subscription = client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
           chat_array.value.push(JSON.parse(chat.body))
@@ -48,7 +75,11 @@ client.connect({}, () => {
 })
 
 const chat = () => {
+  if(state.files != null) {
+    send_msg.value = state.files
+  }
   client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, content: send_msg.value, send_time: now() }));
+  send_msg.value = "";
 }
 
 // 로그인한 유저가 생성한 일정
@@ -79,14 +110,14 @@ axios.all([getMy(), getInvited(), whetherIvite()])
     }))
     .catch((e) => console.log(`${e.error} : ${e.message}`));
 
-// function getMessage(roomId) {
-//   axios.get('api/chat/getAll?roomId=' + roomId)
-//       .then((res) => {
-//         // alert(`${res.data}`)
-//         message_list.value = res.data;
-//   })
-//
-// }
+function getMessage(roomId) {
+  axios.get('api/chat/getAll?roomId=' + roomId)
+      .then((res) => {
+        // alert(`${res.data}`)
+        message_list.value = res.data;
+  })
+
+}
 
 // 일정 삭제 (내가 생성한 것만)
 function deleteSchedule(s_id) {
@@ -100,8 +131,6 @@ function deleteSchedule(s_id) {
       })
       .catch((e) => console.log(`${e.error} : ${e.message}`))
 }
-
-
 
 const {handleSubmit} = useForm({
   validationSchema: {
@@ -191,6 +220,7 @@ function inviteAgree(e) {
       </template>
     </v-card>
   </v-dialog>
+<!--  <qrcode-vue :value="qr_value"></qrcode-vue>-->
 
 <!--  로그인한 유저의 모든 일정 리스트 -->
   <div class="list_div">
@@ -351,36 +381,51 @@ function inviteAgree(e) {
       <v-divider></v-divider>
 
       <v-list
-          height="500"
           overflow-y="auto"
-          class="chat_div"
-          v-for="message in message_list"
-          :key="message"
+          height="700"
       >
-        <v-list-item style="background-color: red; margin-bottom: 2px;">
+        <v-list-item
+            v-for="message in message_list"
+            :key="message"
+            :title="message.email"
+            style="margin-bottom: 2px;">
           {{message.content}}
+          {{useDateFormat(message.send_time, 'HH:mm')}}
         </v-list-item>
+
+        <v-list-item
+            v-for="(item, index) in chat_array"
+            :key="index"
+            :title="item.email"
+            style="display: flex; flex-direction: row-reverse;"
+        >
+          {{item.content}}
+          {{useDateFormat(item.send_time, 'HH:mm')}}
+
+        </v-list-item>
+
       </v-list>
-      <div v-for="(item, index) in chat_array" :key="index">
-        {{item.email}}
-        {{item.content}}
-        {{useDateFormat(item.send_time, 'HH:mm')}}
-      </div>
-
-
       <v-divider></v-divider>
       <v-list>
-        <v-form>
+        <v-form @submit.prevent="chat">
           <v-container>
             <v-row>
               <v-col cols="12">
                 <v-text-field
                     v-model="send_msg"
+                    v-bind="getRootProps()"
                     label="채팅 메시지"
-                    type="text"
+                    type="text file"
                     variant="filled"
-                ></v-text-field>
-                <v-icon icon="mdi-send" @click="chat()"></v-icon>
+                    append-icon="mdi-send"
+                    append-inner-icon="mdi-map-maker"
+                    @click:append="chat"
+                >
+                  <div class="file-item" v-for="(file, index) in state.files" :key="index">
+                    <span>{{ file.name }}</span>
+                    <span class="delete-file" @click="handleClickDeleteFile(index)">Delete</span>
+                  </div>
+                </v-text-field>
               </v-col>
             </v-row>
           </v-container>
@@ -416,11 +461,6 @@ h2 {
   border-radius: 8px;
 }
 
-#map {
-  width: 300px;
-  height: 300px;
-}
-
 .on-hover {
   background-color: lightgray;
   border-radius: 50%;
@@ -429,5 +469,30 @@ h2 {
 .trash_can {
   margin-right: 50px;
   padding: 15px;
+}
+
+
+
+.file-item {
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgb(255 167 18 / 20%);
+  padding: 7px;
+  padding-left: 15px;
+  margin-top: 10px;
+
+  &:first-child {
+    margin-top: 0;
+  }
+
+  .delete-file {
+    background: red;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
 }
 </style>

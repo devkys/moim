@@ -13,6 +13,6 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
     @Override
     <S extends Chat> S save(S entity);
 
-    @Query(value="select * from message where room_id=:room_id", nativeQuery = true)
+    @Query(value="select * from chat where room_id=:room_id", nativeQuery = true)
     List<Chat> getAllBy(Long room_id);
 }
