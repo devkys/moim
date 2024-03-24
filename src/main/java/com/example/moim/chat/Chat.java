@@ -1,10 +1,6 @@
-package com.example.moim.message;
+package com.example.moim.chat;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.Data;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Component;
@@ -24,6 +20,8 @@ public class Chat {
     private String email;
     private Long room_id;
     private String content;
+
+    @Column(nullable = false, columnDefinition = "timestamp default current_timestamp")
     private Timestamp send_time;
 
 

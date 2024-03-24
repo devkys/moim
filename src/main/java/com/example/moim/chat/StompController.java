@@ -1,4 +1,4 @@
-package com.example.moim.message;
+package com.example.moim.chat;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,6 +30,10 @@ public class StompController {
     @MessageMapping(value = "/chat/message")
     public void message(Chat chat){
         template.convertAndSend("/sub/chat/room/"+ chat.getRoom_id(), chat);
+
+    }
+
+    public void chatsave(Chat chat) {
 
     }
 

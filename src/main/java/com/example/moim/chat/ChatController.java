@@ -1,4 +1,4 @@
-package com.example.moim.message;
+package com.example.moim.chat;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -11,7 +11,6 @@ import java.util.List;
 @RequestMapping("api/chat")
 @RequiredArgsConstructor
 public class ChatController {
-
 
     private final ChatService chatService;
 

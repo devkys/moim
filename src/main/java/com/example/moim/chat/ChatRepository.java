@@ -1,4 +1,4 @@
-package com.example.moim.message;
+package com.example.moim.chat;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

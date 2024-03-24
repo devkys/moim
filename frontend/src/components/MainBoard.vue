@@ -1,12 +1,13 @@
 <script setup>
 import axios from "axios";
-import {ref, watchEffect} from "vue";
-import {useClipboard, useDateFormat} from '@vueuse/core';
+import {ref, watch} from "vue";
+import {now, useClipboard, useDateFormat} from '@vueuse/core';
 import {useField, useForm} from "vee-validate";
 import router from "@/router";
 import webstomp from "webstomp-client";
 import SockJS from "sockjs-client";
-
+// import {snakeCase} from "eslint-plugin-vue/lib/utils/casing";
+//
 const schedule_list = ref();
 const invite_list = ref();
 const add_dialog = ref(false);
@@ -18,31 +19,36 @@ const sch_info = ref([]);
 const send_msg = ref();
 const {user_info} = history.state;
 const message_list = ref();
-const chat_result = ref({});
+const chat_array = ref([]);
 // const user_email = history.state.email;
 
 const sock = new SockJS("http://localhost:8081/stomp/chat");
 const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client를 내어준다.
 
+let subscription = null; // 구독을 추적하기 위한 변수
+
 client.connect({}, () => {
-  watchEffect(() => {
-    if(drawer.value === true){
-      client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
-        chat_result.value += JSON.parse(chat.body);
-        alert(JSON.stringify(chat_result));
-      })
+
+
+  watch(drawer, () => {
+    if (drawer.value === true) {
+      if (!subscription) {
+        subscription = client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
+          chat_array.value.push(JSON.parse(chat.body))
+        });
+      }
+    } else if (drawer.value === false && sch_info.value.seq != null) {
+      if (subscription) {
+        subscription.unsubscribe(); // 이전 구독 해지
+        subscription = null;
+        chat_array.value = []; // 채팅 배열 초기화
+      }
     }
-    if(drawer.value === false && sch_info.value.seq != null) {
-      client.disconnect()
-    }
-  })
+  });
 })
+
 const chat = () => {
-  alert("click!!!")
-  alert(`${chat_result.value} `)
-
-  client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, content: send_msg.value }));
-
+  client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, content: send_msg.value, send_time: now() }));
 }
 
 // 로그인한 유저가 생성한 일정
@@ -208,9 +214,8 @@ function inviteAgree(e) {
 
             <div class="justify-center align-center">
               <v-icon
-                  icon="mdi-message-text-outline"
-                  @click="drawer = !drawer"
-                  v-on:click="sch_info.seq = schedule.seq"
+                  icon="mdi-forum-outline"
+                  @click="drawer = !drawer; sch_info.seq = schedule.seq"
               ></v-icon>
               {{drawer}}
             </div>
@@ -356,7 +361,12 @@ function inviteAgree(e) {
           {{message.content}}
         </v-list-item>
       </v-list>
- {{chat_result}}
+      <div v-for="(item, index) in chat_array" :key="index">
+        {{item.email}}
+        {{item.content}}
+        {{useDateFormat(item.send_time, 'HH:mm')}}
+      </div>
+
 
       <v-divider></v-divider>
       <v-list>
