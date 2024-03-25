@@ -1,9 +1,12 @@
 package com.example.moim.schedule;
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +15,7 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     @Query(value="select * from schedule where email =:email", nativeQuery = true)
     List<Schedule> getAll(String email);
+
 
     @Override
     List<Schedule> findAllById(Iterable<Long> longs);
@@ -27,4 +31,12 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
 
     @Override
     void deleteById(Long aLong);
+
+    @Modifying
+    @Transactional
+    @Query(value = "update schedule set title=:title, content=:content, duedate=:duedate, place=:place where seq =:seq", nativeQuery = true)
+    void update(String title, String content, Date duedate, String place, Long seq);
+
+
+
 }

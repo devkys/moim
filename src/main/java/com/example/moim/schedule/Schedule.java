@@ -7,6 +7,7 @@ import jakarta.persistence.Id;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
@@ -14,6 +15,7 @@ import java.util.Date;
 @Getter
 @Setter
 @Data
+@Component
 public class Schedule {
 
     @Id

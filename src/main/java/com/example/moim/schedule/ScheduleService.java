@@ -33,5 +33,11 @@ public class ScheduleService {
     public void deletebyId(Long s_id) {
         scheduleRepository.deleteById(s_id);
     }
+    public void update(Schedule schedule) {
+        scheduleRepository.update(schedule.getTitle(), schedule.getContent(), schedule.getDuedate(), schedule.getPlace(), schedule.getSeq());
+
+    }
+
+
 
 }

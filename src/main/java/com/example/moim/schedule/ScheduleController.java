@@ -100,16 +100,22 @@ public class ScheduleController {
 
     @PostMapping("save")
     @ResponseBody
-    public boolean SaveSchedule(@RequestBody Schedule reqData){
+    public boolean saveSchedule(@RequestBody Schedule reqData){
         System.out.println("생성하고 싶은 일정 " + reqData);
         scheduleService.save(reqData);
         return true;
     }
-
+    @PostMapping("update")
+    @ResponseBody
+    public boolean updateSchedule(@RequestBody Schedule schedule){
+        System.out.println("생성하고 싶은 일정 " + schedule);
+//        scheduleService.update(reqData.getTitle(), reqData.getContent(), reqData.getDuedate(), reqData.getPlace(), reqData.getSeq());
+        scheduleService.update(schedule);
+        return true;
+    }
     @PostMapping("deleteOne")
     @ResponseBody
     public int deleteSchedule(@RequestBody String scheduleId) {
-
         System.out.println("스케쥴 삭제" + scheduleId);
         scheduleService.deletebyId(Long.parseLong(scheduleId));
 
