@@ -15,7 +15,7 @@ public class StompController {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final SimpMessagingTemplate template; //특정 Broker로 메세지를 전달
-    private final ChatRepository chatRepository;
+    private final ChatService chatService;
 
     //Client가 SEND할 수 있는 경로
     //stompConfig에서 설정한 applicationDestinationPrefixes와 @MessageMapping 경로가 병합됨
@@ -29,7 +29,7 @@ public class StompController {
     @MessageMapping(value = "/chat/message")
     public void message(Chat chat){
         template.convertAndSend("/sub/chat/room/"+ chat.getRoom_id(), chat);
-        chatRepository.save(chat);
+        chatService.save(chat);
     }
 
 

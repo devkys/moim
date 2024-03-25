@@ -22,7 +22,26 @@ const {user_info} = history.state;
 const message_list = ref();
 const chat_array = ref([]);
 // const user_email = history.state.email;
-
+// const script = document.createElement("script");
+// script.async = true;
+// script.src= "//dapi.kakao.com/v2/maps/sdk.js?appkey=6ef9d59fed893f2d0123c41617be5fcd&autoload=false";
+//
+// document.head.appendChild(script);
+//
+// /* global kakao */
+// window.onload = () => {
+//   kakao.maps.load(() => {
+//     const node = document.getElementById('map'); // 지도를 표시할 div
+//     const center = new kakao.maps.LatLng(37.50802, 127.062835);
+//     const options = {
+//       center,
+//       level: 3
+//     };
+//     const map =  new kakao.maps.Map(node, options);
+//     map;
+//   });
+// }
+//
 const state = reactive({
   files: [],
 });
@@ -54,6 +73,17 @@ const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client�
 
 let subscription = null; // 구독을 추적하기 위한 변수
 
+const getBase64 = file => {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      resolve(result);
+    }
+    reader.readAsDataURL(file);
+  })
+}
+
 client.connect({}, () => {
 
   watch(drawer, () => {
@@ -74,11 +104,15 @@ client.connect({}, () => {
   });
 })
 
-const chat = () => {
+const chat = async () => {
   if(state.files != null) {
-    send_msg.value = state.files
+    send_msg.value = await getBase64(state.files[0]);
+    client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, blobtype: send_msg.value, send_time: now() }));
+    state.files.splice(1);
   }
-  client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, content: send_msg.value, send_time: now() }));
+  else {
+    client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, content: send_msg.value, send_time: now() }));
+  }
   send_msg.value = "";
 }
 
@@ -116,7 +150,6 @@ function getMessage(roomId) {
         // alert(`${res.data}`)
         message_list.value = res.data;
   })
-
 }
 
 // 일정 삭제 (내가 생성한 것만)
@@ -171,7 +204,6 @@ const scheduleSave = handleSubmit(values => {
 })
 
 
-
 // 초대받은 세션이 존재하면 활성화되는 함수
 // 초대 수락 or 거절
 function inviteAgree(e) {
@@ -192,11 +224,8 @@ function inviteAgree(e) {
 </script>
 
 <template>
-  <div>
-
-  </div>
+  <div class="total_div">
   <h2>{{ user_info.nickname }}님의 일정</h2>
-
   <!--  초대 수락 or 거절 modal -->
   <v-dialog
       v-model="invite_modal"
@@ -208,7 +237,7 @@ function inviteAgree(e) {
         text="초대를 수락하시겠습니까"
         title="유효한 초대"
     >
-      <template v-slot:actions>
+
         <v-spacer></v-spacer>
         <v-btn @click="invite_modal = false; inviteAgree(false)">
           거절
@@ -217,10 +246,9 @@ function inviteAgree(e) {
         <v-btn @click="invite_modal = false; inviteAgree(true) ">
           수락
         </v-btn>
-      </template>
+
     </v-card>
   </v-dialog>
-<!--  <qrcode-vue :value="qr_value"></qrcode-vue>-->
 
 <!--  로그인한 유저의 모든 일정 리스트 -->
   <div class="list_div">
@@ -247,24 +275,30 @@ function inviteAgree(e) {
                   icon="mdi-forum-outline"
                   @click="drawer = !drawer; sch_info.seq = schedule.seq"
               ></v-icon>
-              {{drawer}}
             </div>
           </v-hover>
         </v-expansion-panel-title>
 
         <v-expansion-panel-text>
-          <strong> {{ schedule.content }} </strong> <br>
-          <span> 일정 </span>
-          <span> {{ useDateFormat(schedule.duedate, 'YYYY-MM-DD HH:mm:ss') }}</span>
-          <span> 장소 </span>
-          <span> {{ schedule.place }}</span>
-          <span>{{ schedule.seq }}</span>
-          <v-btn @click="copy(invite_url+schedule.seq)">초대링크</v-btn>
+          <div class="each">
+            <v-icon style="margin-right: 10px;">mdi-bullhorn-outline</v-icon>
+            <span> {{ schedule.content }} </span>
+          </div>
+          <div class="each">
+            <v-icon>mdi-calendar-range</v-icon>
+            <span style="margin-bottom: 10px;"> {{useDateFormat(schedule.duedate, ref('MM-DD HH:mm')) }}</span>
+          </div>
+          <div class="each">
+            <v-icon>mdi-map-marker-outline</v-icon>
+            <a :href="'https://map.kakao.com/?q=' + schedule.place"  target="_blank" style="color: black; margin-bottom: 10px;"> {{schedule.place}}</a> <br>
+            <v-icon @click="copy(invite_url+schedule.seq)">mdi-account-plus</v-icon>
+          </div>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
   </div>
 
+<!--  초대된 일정 리스트 -->
   <div class="invite_div">
     <v-expansion-panels variant="popout">
       <v-expansion-panel
@@ -289,7 +323,7 @@ function inviteAgree(e) {
         <v-expansion-panel-text>
           <strong> {{ schedule.content }} </strong> <br>
           <span> 일정 </span>
-          <span> {{ useDateFormat(schedule.duedate, 'YYYY-MM-DD HH:mm:ss') }}</span>
+          <span> {{ useDateFormat(schedule.duedate, 'MM-DD HH:mm') }}</span>
           <span> 장소 </span>
           <span> {{ schedule.place }}</span>
           <span>{{ schedule.seq }}</span>
@@ -298,16 +332,21 @@ function inviteAgree(e) {
     </v-expansion-panels>
   </div>
 
+  <v-btn
+      style="float: right; display:block;"
+      icon="mdi-plus"
+      fab
+      elevation="11"
+      @click="add_dialog = true"
+
+  >
+  </v-btn>
+
+<!--일정 추가 다이얼로그-->
   <v-dialog
       v-model="add_dialog"
       width="auto"
   >
-    <template v-slot:activator="{ props: activatorProps}">
-      <v-col cols="auto">
-        <v-btn icon="mdi-plus" fab bottom right elevation="11" @click="add_dialog = true"
-               v-bind="activatorProps"></v-btn>
-      </v-col>
-    </template>
 
     <v-card
         width="800"
@@ -365,12 +404,12 @@ function inviteAgree(e) {
                 variant="tonal"
             ></v-btn>
           </v-card-actions>
-
         </form>
       </v-card-text>
     </v-card>
   </v-dialog>
 
+<!-- chat sidebar -->
   <v-layout>
     <v-navigation-drawer
         v-model="drawer"
@@ -379,31 +418,47 @@ function inviteAgree(e) {
     >
       <v-list-item>{{sch_info.seq}} Chat</v-list-item>
       <v-divider></v-divider>
-
       <v-list
-          overflow-y="auto"
+          class="overflow-auto"
           height="700"
       >
-        <v-list-item
+<!--      db 저장 정보-->
+        <div
+            class="chat"
             v-for="message in message_list"
             :key="message"
-            :title="message.email"
-            style="margin-bottom: 2px;">
-          {{message.content}}
-          {{useDateFormat(message.send_time, 'HH:mm')}}
-        </v-list-item>
-
-        <v-list-item
+        >
+          <div
+              v-if="message.email !== user_info.email"
+          >
+            {{message.email}}
+          </div>
+          <div
+              :class="{'msg sent' : message.email === user_info.email, 'msg rcvd' : message.email !== user_info.email}"
+          >
+            {{message.content}}
+            {{meassage.blobtype}}
+            {{useDateFormat(message.send_time, 'HH:mm')}}
+          </div>
+        </div>
+       <!--        stomp 연결 -->
+        <div
+            class="chat"
             v-for="(item, index) in chat_array"
             :key="index"
-            :title="item.email"
-            style="display: flex; flex-direction: row-reverse;"
         >
-          {{item.content}}
-          {{useDateFormat(item.send_time, 'HH:mm')}}
-
-        </v-list-item>
-
+          <div
+              v-if="item.email !== user_info.email"
+          >
+            {{item.email}}
+          </div>
+          <div
+              :class="{'msg sent' : item.email === user_info.email, 'msg rcvd' : item.email !== user_info.email}"
+          >
+            {{item.content}}
+            {{useDateFormat(item.send_time, 'HH:mm')}}
+          </div>
+        </div>
       </v-list>
       <v-divider></v-divider>
       <v-list>
@@ -434,23 +489,30 @@ function inviteAgree(e) {
 
     </v-navigation-drawer>
   </v-layout>
-
+  </div>
 </template>
 <style scoped>
 
 h2 {
   text-align: center;
+  margin-bottom: 30px;
 }
 
-.list_div {
-  width: 50%;
+.total_div {
+  width:50%;
   margin: 0 auto;
+  margin-top:30px;
+}
+.list_div {
   margin-bottom: 100px;
 }
 
 .invite_div {
-  width: 50%;
-  margin: 0 auto;
+  margin-bottom: 50px;
+}
+
+.each {
+  padding: 10px;
 }
 
 .schedule_list {
@@ -470,8 +532,6 @@ h2 {
   margin-right: 50px;
   padding: 15px;
 }
-
-
 
 .file-item {
   border-radius: 8px;
@@ -494,5 +554,86 @@ h2 {
     border-radius: 8px;
     cursor: pointer;
   }
+}
+
+
+* {margin: 0; box-sizing: border-box;}
+
+.chat {
+  --rad: 20px;
+  --rad-sm: 3px;
+  font: 16px/1.5 sans-serif;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  max-width: 500px;
+  margin: auto;
+}
+
+.msg {
+  position: relative;
+  max-width: 75%;
+  padding: 7px 15px;
+  margin-bottom: 2px;
+}
+
+.msg.sent {
+  border-radius: var(--rad) var(--rad-sm) var(--rad-sm) var(--rad);
+  background: #42a5f5;
+  color: #fff;
+  /* moves it to the right */
+  margin-left: auto;
+}
+
+.msg.rcvd {
+  border-radius: var(--rad-sm) var(--rad) var(--rad) var(--rad-sm);
+  background: #f1f1f1;
+  color: #555;
+  /* moves it to the left */
+  margin-right: auto;
+}
+
+/* Improve radius for messages group */
+
+.msg.sent:first-child,
+.msg.rcvd+.msg.sent {
+  border-top-right-radius: var(--rad);
+}
+
+.msg.rcvd:first-child,
+.msg.sent+.msg.rcvd {
+  border-top-left-radius: var(--rad);
+}
+
+
+/* time */
+
+.msg::before {
+  content: attr(data-time);
+  font-size: 0.8rem;
+  position: absolute;
+  bottom: 100%;
+  color: #888;
+  white-space: nowrap;
+  /* Hidden by default */
+  display: none;
+}
+
+.msg.sent::before {
+  right: 15px;
+}
+
+.msg.rcvd::before {
+  left: 15px;
+}
+
+
+/* Show time only for first message in group */
+
+.msg:first-child::before,
+.msg.sent+.msg.rcvd::before,
+.msg.rcvd+.msg.sent::before {
+  /* Show only for first message in group */
+  display: block;
 }
 </style>

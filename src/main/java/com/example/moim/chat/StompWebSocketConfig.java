@@ -5,6 +5,7 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 
 @EnableWebSocketMessageBroker
 @Configuration
@@ -28,5 +29,10 @@ public class StompWebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // 수신과 브로드 캐스팅을 위해 내장 메시지 브로커 사용
         // destination header가 /sub로 시작하는 메시지를 브로커로 라우팅
         config.enableSimpleBroker("/sub");
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
+        registry.setMessageSizeLimit(50*1024*1024);
     }
 }

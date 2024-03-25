@@ -82,7 +82,6 @@ public class ScheduleController {
         // 세션 값 null
         if(sch_id == null) {
             System.out.println("초대장 없음");
-//            session.invalidate();
             return "false";
         } else {
             /*

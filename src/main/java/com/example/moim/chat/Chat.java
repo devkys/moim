@@ -23,6 +23,7 @@ public class Chat {
 
     @Column(nullable = false, columnDefinition = "timestamp default current_timestamp")
     private Timestamp send_time;
+    private String blobtype;
 
 
 }
