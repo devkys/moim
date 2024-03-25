@@ -1,15 +1,14 @@
 <script setup>
 import axios from "axios";
+import DataView from 'primevue/dataview`'
 import {reactive, ref, watch} from "vue";
 import {now, useClipboard, useDateFormat} from '@vueuse/core';
-import {useField, useForm} from "vee-validate";
+import { useField, useForm} from "vee-validate";
 import router from "@/router";
 import webstomp from "webstomp-client";
 import SockJS from "sockjs-client";
 import {useDropzone} from "vue3-dropzone";
-import base64ToFile from "base64-to-file";
-
-// import multiavatar from "@multiavatar/multiavatar";
+import Image from 'primevue/image';
 const schedule_list = ref();
 const invite_list = ref();
 const add_dialog = ref(false);
@@ -23,26 +22,8 @@ const {user_info} = history.state;
 const message_list = ref();
 const chat_array = ref([]);
 // const user_email = history.state.email;
-// const script = document.createElement("script");
-// script.async = true;
-// script.src= "//dapi.kakao.com/v2/maps/sdk.js?appkey=6ef9d59fed893f2d0123c41617be5fcd&autoload=false";
-//
-// document.head.appendChild(script);
-//
-// /* global kakao */
-// window.onload = () => {
-//   kakao.maps.load(() => {
-//     const node = document.getElementById('map'); // 지도를 표시할 div
-//     const center = new kakao.maps.LatLng(37.50802, 127.062835);
-//     const options = {
-//       center,
-//       level: 3
-//     };
-//     const map =  new kakao.maps.Map(node, options);
-//     map;
-//   });
-// }
-//
+
+
 const state = reactive({
   files: [],
 });
@@ -73,18 +54,6 @@ const sock = new SockJS("http://localhost:8081/stomp/chat");
 const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client를 내어준다.
 
 let subscription = null; // 구독을 추적하기 위한 변수
-
-const getBase64 = file => {
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      resolve(result);
-    }
-    reader.readAsDataURL(file);
-  })
-}
-
 client.connect({}, () => {
 
   watch(drawer, () => {
@@ -105,16 +74,28 @@ client.connect({}, () => {
   });
 })
 
+const getBase64 = file => {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      resolve(result);
+    }
+    reader.readAsDataURL(file);
+  })
+}
 const chat = async () => {
-  if(state.files != null) {
+  if(state.files !== null && state.files[0] instanceof Blob) {
     send_msg.value = await getBase64(state.files[0]);
     client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, blob_type: send_msg.value, send_time: now() }));
-    state.files.splice(1);
+    state.files = null;
+    send_msg.value = "";
   }
-  else {
+  if(send_msg.value !== undefined) {
+    alert(`${send_msg.value}`)
     client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, content: send_msg.value, send_time: now() }));
+    send_msg.value = "";
   }
-  send_msg.value = "";
 }
 
 // 로그인한 유저가 생성한 일정
@@ -148,10 +129,8 @@ axios.all([getMy(), getInvited(), whetherIvite()])
 function getMessage(roomId) {
   axios.get('api/chat/getAll?roomId=' + roomId)
       .then((res) => {
-        // alert(`${res.data}`)
         message_list.value = res.data;
-        base64ToFile.convert(message_list.value.blob_type)
-  })
+      });
 }
 
 // 일정 삭제 (내가 생성한 것만)
@@ -204,7 +183,6 @@ const scheduleSave = handleSubmit(values => {
       })
       .catch(err => console.log(err))
 })
-
 
 // 초대받은 세션이 존재하면 활성화되는 함수
 // 초대 수락 or 거절
@@ -271,13 +249,11 @@ function inviteAgree(e) {
                 icon="mdi-trash-can"
                 @click="deleteSchedule(schedule.seq)"
             ></v-icon>
-
-            <div class="justify-center align-center">
-              <v-icon
-                  icon="mdi-forum-outline"
-                  @click="drawer = !drawer; sch_info.seq = schedule.seq"
-              ></v-icon>
-            </div>
+            <v-icon
+                icon="mdi-forum-outline"
+                @click="drawer = !drawer; sch_info.seq = schedule.seq"
+            ></v-icon>
+            <v-icon>mdi-pencil</v-icon>
           </v-hover>
         </v-expansion-panel-title>
 
@@ -439,12 +415,14 @@ function inviteAgree(e) {
               :class="{'msg sent' : message.email === user_info.email, 'msg rcvd' : message.email !== user_info.email}"
           >
             {{message.content}}
-
-            {{message.blob_type}}
-
+            <template v-if="message.blob_type">
+              <Image :src="message.blob_type" alt="missing" style="max-height:100px; max-width:100px;" preview/>
+<!--              <img :src="message.blob_type" alt="missing" style="max-height:250px; max-width:250px;"/>-->
+            </template>
             {{useDateFormat(message.send_time, 'HH:mm')}}
           </div>
         </div>
+
        <!--        stomp 연결 -->
         <div
             class="chat"
@@ -460,6 +438,11 @@ function inviteAgree(e) {
               :class="{'msg sent' : item.email === user_info.email, 'msg rcvd' : item.email !== user_info.email}"
           >
             {{item.content}}
+            <template v-if="item.blob_type">
+              <Image :src="item.blob_type" alt="Image" width="250" preview />
+<!--              <img :src="item.blob_type" alt="missing" style="max-height:250px; max-width: 250px;" class="[data-zoomable]">-->
+            </template>
+
             {{useDateFormat(item.send_time, 'HH:mm')}}
           </div>
         </div>
@@ -640,4 +623,5 @@ h2 {
   /* Show only for first message in group */
   display: block;
 }
+
 </style>
