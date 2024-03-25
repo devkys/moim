@@ -1,6 +1,5 @@
 <script setup>
 import axios from "axios";
-import DataView from 'primevue/dataview`'
 import {reactive, ref, watch} from "vue";
 import {now, useClipboard, useDateFormat} from '@vueuse/core';
 import { useField, useForm} from "vee-validate";
@@ -8,15 +7,20 @@ import router from "@/router";
 import webstomp from "webstomp-client";
 import SockJS from "sockjs-client";
 import {useDropzone} from "vue3-dropzone";
-import Image from 'primevue/image';
 const schedule_list = ref();
 const invite_list = ref();
 const add_dialog = ref(false);
+const update_dialog = ref(false);
 const invite_modal = ref(false);
 const {copy} = useClipboard();
 const invite_url = "http://localhost:8081/api/sch_mgmt/invite-sch/"
 const drawer = ref(null);
 const sch_info = ref([]);
+const update_seq = ref([]);
+const update_title = ref([]);
+const update_content = ref([]);
+const update_duedate = ref([]);
+const update_place = ref([]);
 const send_msg = ref();
 const {user_info} = history.state;
 const message_list = ref();
@@ -159,9 +163,9 @@ const {handleSubmit} = useForm({
       return '30자 이하로 입력해주세요.'
     },
     place(value) {
-      if (value?.length <= 50) return true
+      if (value?.length <= 30) return true
 
-      return '50자 이하로 입력해주세요,';
+      return '30자 이하로 입력해주세요,';
     },
   }
 })
@@ -183,7 +187,19 @@ const scheduleSave = handleSubmit(values => {
       })
       .catch(err => console.log(err))
 })
-
+const scheduleUpdate = handleSubmit(values => {
+  values.email = user_info.email;
+  values.seq = update_seq.value.seq;
+  axios.post('api/sch_mgmt/update', values)
+      .then(res => {
+        if (res.data) {
+          router.go(0);
+        } else {
+          alert('error 발생');
+        }
+      })
+      .catch(err => console.log(err))
+})
 // 초대받은 세션이 존재하면 활성화되는 함수
 // 초대 수락 or 거절
 function inviteAgree(e) {
@@ -241,20 +257,6 @@ function inviteAgree(e) {
       >
         <v-expansion-panel-title>
           <h3> {{ schedule.title }}</h3>
-          <v-hover v-slot="{ isHovering, props }">
-            <v-icon
-                class="trash_can"
-                v-bind="props"
-                :class="{'on-hover' : isHovering}"
-                icon="mdi-trash-can"
-                @click="deleteSchedule(schedule.seq)"
-            ></v-icon>
-            <v-icon
-                icon="mdi-forum-outline"
-                @click="drawer = !drawer; sch_info.seq = schedule.seq"
-            ></v-icon>
-            <v-icon>mdi-pencil</v-icon>
-          </v-hover>
         </v-expansion-panel-title>
 
         <v-expansion-panel-text>
@@ -264,12 +266,38 @@ function inviteAgree(e) {
           </div>
           <div class="each">
             <v-icon>mdi-calendar-range</v-icon>
-            <span style="margin-bottom: 10px;"> {{useDateFormat(schedule.duedate, ref('MM-DD HH:mm')) }}</span>
+            <span style="margin-bottom: 10px;">{{useDateFormat(schedule.duedate, ref('MM-DD HH:mm')) }}</span>
           </div>
           <div class="each">
             <v-icon>mdi-map-marker-outline</v-icon>
             <a :href="'https://map.kakao.com/?q=' + schedule.place"  target="_blank" style="color: black; margin-bottom: 10px;"> {{schedule.place}}</a> <br>
-            <v-icon @click="copy(invite_url+schedule.seq)">mdi-account-plus</v-icon>
+          </div>
+          <div class="each">
+            <v-icon @click="copy(invite_url+schedule.seq)" >mdi-account-multiple</v-icon>
+          </div>
+          <div class="icon_div">
+            <v-icon
+                icon="mdi-trash-can"
+                @click="deleteSchedule(schedule.seq)"
+            ></v-icon>
+            <v-icon
+                icon="mdi-forum-outline"
+                @click="drawer = !drawer; sch_info.seq = schedule.seq"
+            ></v-icon>
+            <v-icon
+                icon="mdi-pencil"
+                @click="update_dialog = true;
+                update_seq.seq = schedule.seq;
+                update_title.title = schedule.title;
+                update_content.content = schedule.content;
+                update_duedate.duedate = schedule.duedate;
+                update_place.place = schedule.place;"
+            ></v-icon>
+            <v-icon
+                icon="mdi-share"
+            >
+
+            </v-icon>
           </div>
         </v-expansion-panel-text>
       </v-expansion-panel>
@@ -325,7 +353,6 @@ function inviteAgree(e) {
       v-model="add_dialog"
       width="auto"
   >
-
     <v-card
         width="800"
         prepend-icon="mdi-plus"
@@ -387,6 +414,73 @@ function inviteAgree(e) {
     </v-card>
   </v-dialog>
 
+<!--  일정 수정 다이얼로그  -->
+    <v-dialog
+        v-model="update_dialog"
+        width="auto"
+    >
+      <v-card
+          width="800"
+          prepend-icon="mdi-plus"
+          title="일정 수정하기"
+      >
+        <v-card-text>
+          <form @submit.prevent="scheduleUpdate">
+            <v-row dense>
+              <v-col>
+                <v-text-field
+                    required
+                    label="일정 제목"
+                    v-model="title.value.value"
+                    :error-messages="title.errorMessage.value"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-row dense>
+              <v-col>
+                <v-text-field
+                    v-model="content.value.value"
+                    label="일정 내용"
+                    :error-messages="content.errorMessage.value"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-row dense>
+              <v-col>
+                <v-text-field
+                    label="장소"
+                    v-model="place.value.value"
+                    :error-messages="place.errorMessage.value"
+                ></v-text-field>
+              </v-col>
+              <input
+                  type="datetime-local"
+                  v-model="duedate.value.value"
+              >
+            </v-row>
+            <v-divider></v-divider>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn
+                  text="닫기"
+                  variant="plain"
+                  @click="update_dialog = false"
+              ></v-btn>
+
+              <v-btn
+                  color="primary"
+                  type="submit"
+                  text="저장"
+                  variant="tonal"
+              ></v-btn>
+            </v-card-actions>
+          </form>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
 <!-- chat sidebar -->
   <v-layout>
     <v-navigation-drawer
@@ -416,8 +510,8 @@ function inviteAgree(e) {
           >
             {{message.content}}
             <template v-if="message.blob_type">
-              <Image :src="message.blob_type" alt="missing" style="max-height:100px; max-width:100px;" preview/>
-<!--              <img :src="message.blob_type" alt="missing" style="max-height:250px; max-width:250px;"/>-->
+<!--              <Image :src="message.blob_type" alt="missing" style="max-height:100px; max-width:100px;" preview/>-->
+              <img :src="message.blob_type" alt="missing" style="max-height:250px; max-width:250px;"/>
             </template>
             {{useDateFormat(message.send_time, 'HH:mm')}}
           </div>
@@ -439,8 +533,8 @@ function inviteAgree(e) {
           >
             {{item.content}}
             <template v-if="item.blob_type">
-              <Image :src="item.blob_type" alt="Image" width="250" preview />
-<!--              <img :src="item.blob_type" alt="missing" style="max-height:250px; max-width: 250px;" class="[data-zoomable]">-->
+<!--              <Image :src="item.blob_type" alt="Image" width="250" preview />-->
+              <img :src="item.blob_type" alt="missing" style="max-height:250px; max-width: 250px;" class="[data-zoomable]">
             </template>
 
             {{useDateFormat(item.send_time, 'HH:mm')}}
@@ -502,6 +596,9 @@ h2 {
   padding: 10px;
 }
 
+v-expansion-panels {
+  background-color: #F5F7FA;
+}
 .schedule_list {
   margin: 0 auto;
   background-color: #F5F7FA;
@@ -513,11 +610,6 @@ h2 {
 .on-hover {
   background-color: lightgray;
   border-radius: 50%;
-}
-
-.trash_can {
-  margin-right: 50px;
-  padding: 15px;
 }
 
 .file-item {
@@ -624,4 +716,8 @@ h2 {
   display: block;
 }
 
+.icon_div {
+  padding: 10px;
+  float: right;
+}
 </style>
