@@ -7,6 +7,7 @@ import router from "@/router";
 import webstomp from "webstomp-client";
 import SockJS from "sockjs-client";
 import {useDropzone} from "vue3-dropzone";
+import base64ToFile from "base64-to-file";
 
 // import multiavatar from "@multiavatar/multiavatar";
 const schedule_list = ref();
@@ -107,7 +108,7 @@ client.connect({}, () => {
 const chat = async () => {
   if(state.files != null) {
     send_msg.value = await getBase64(state.files[0]);
-    client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, blobtype: send_msg.value, send_time: now() }));
+    client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, blob_type: send_msg.value, send_time: now() }));
     state.files.splice(1);
   }
   else {
@@ -149,6 +150,7 @@ function getMessage(roomId) {
       .then((res) => {
         // alert(`${res.data}`)
         message_list.value = res.data;
+        base64ToFile.convert(message_list.value.blob_type)
   })
 }
 
@@ -437,7 +439,9 @@ function inviteAgree(e) {
               :class="{'msg sent' : message.email === user_info.email, 'msg rcvd' : message.email !== user_info.email}"
           >
             {{message.content}}
-            {{meassage.blobtype}}
+
+            {{message.blob_type}}
+
             {{useDateFormat(message.send_time, 'HH:mm')}}
           </div>
         </div>

@@ -12,8 +12,6 @@ public class ChatService {
 
     private final ChatRepository chatRepository;
 
-
-
     public ChatService(ChatRepository messageRepository) {
         this.chatRepository = messageRepository;
     }

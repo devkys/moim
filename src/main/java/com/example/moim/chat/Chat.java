@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Component;
 
+import java.sql.Blob;
 import java.sql.Timestamp;
 
 
@@ -23,7 +24,6 @@ public class Chat {
 
     @Column(nullable = false, columnDefinition = "timestamp default current_timestamp")
     private Timestamp send_time;
-    private String blobtype;
-
+    private String blob_type;
 
 }
