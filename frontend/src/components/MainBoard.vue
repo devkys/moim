@@ -1,6 +1,6 @@
 <script setup>
 import axios from "axios";
-import {reactive, ref, watch} from "vue";
+import {computed, reactive, ref, watch} from "vue";
 import {now, useClipboard, useDateFormat} from '@vueuse/core';
 import { useField, useForm} from "vee-validate";
 import router from "@/router";
@@ -8,6 +8,7 @@ import webstomp from "webstomp-client";
 import SockJS from "sockjs-client";
 import {useDropzone} from "vue3-dropzone";
 const schedule_list = ref();
+const invited_user_list = ref([]);
 const invite_list = ref();
 const add_dialog = ref(false);
 const update_dialog = ref(false);
@@ -26,7 +27,6 @@ const {user_info} = history.state;
 const message_list = ref();
 const chat_array = ref([]);
 // const user_email = history.state.email;
-
 
 const state = reactive({
   files: [],
@@ -58,11 +58,14 @@ const sock = new SockJS("http://localhost:8081/stomp/chat");
 const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client를 내어준다.
 
 let subscription = null; // 구독을 추적하기 위한 변수
+
+
 client.connect({}, () => {
 
   watch(drawer, () => {
     if (drawer.value === true) {
       getMessage(sch_info.value.seq);
+      getInvtedUser(sch_info.value.seq);
       if (!subscription) {
         subscription = client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
           chat_array.value.push(JSON.parse(chat.body))
@@ -96,7 +99,6 @@ const chat = async () => {
     send_msg.value = "";
   }
   if(send_msg.value !== undefined) {
-    alert(`${send_msg.value}`)
     client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, content: send_msg.value, send_time: now() }));
     send_msg.value = "";
   }
@@ -137,9 +139,16 @@ function getMessage(roomId) {
       });
 }
 
+function getInvtedUser(roomId){
+  axios.get('api/users-mgmt/invited-user?roomId=' + roomId)
+    .then((res) => {
+      invited_user_list.value = res.data;
+    });
+}
+const getUserCount = computed(()=> invited_user_list.value.length)
+
 // 일정 삭제 (내가 생성한 것만)
 function deleteSchedule(s_id) {
-
   axios.post('api/sch_mgmt/deleteOne', s_id)
       .then((res) => {
         if (res.data.value === 1) {
@@ -187,6 +196,7 @@ const scheduleSave = handleSubmit(values => {
       })
       .catch(err => console.log(err))
 })
+
 const scheduleUpdate = handleSubmit(values => {
   values.email = user_info.email;
   values.seq = update_seq.value.seq;
@@ -233,7 +243,6 @@ function inviteAgree(e) {
         text="초대를 수락하시겠습니까"
         title="유효한 초대"
     >
-
         <v-spacer></v-spacer>
         <v-btn @click="invite_modal = false; inviteAgree(false)">
           거절
@@ -245,6 +254,7 @@ function inviteAgree(e) {
 
     </v-card>
   </v-dialog>
+
 
 <!--  로그인한 유저의 모든 일정 리스트 -->
   <div class="list_div">
@@ -282,7 +292,7 @@ function inviteAgree(e) {
             ></v-icon>
             <v-icon
                 icon="mdi-forum-outline"
-                @click="drawer = !drawer; sch_info.seq = schedule.seq"
+                @click="drawer = !drawer; sch_info.seq = schedule.seq; sch_info.title = schedule.title"
             ></v-icon>
             <v-icon
                 icon="mdi-pencil"
@@ -293,11 +303,14 @@ function inviteAgree(e) {
                 update_duedate.duedate = schedule.duedate;
                 update_place.place = schedule.place;"
             ></v-icon>
+
             <v-icon
                 icon="mdi-share"
+                v-bind="props"
+                @click="copy(invite_url+schedule.seq)"
             >
-
             </v-icon>
+
           </div>
         </v-expansion-panel-text>
       </v-expansion-panel>
@@ -315,24 +328,30 @@ function inviteAgree(e) {
       >
         <v-expansion-panel-title>
           <h3> {{ schedule.title }}</h3>
-          <div class="justify-center align-center">
-            <v-icon
-                v-bind="props"
-                :class="{'on-hover' : isHovering}"
-                icon="mdi-message-text-outline"
-                @click.stop="drawer = !drawer"
-                v-on:click="sch_info.seq = schedule.seq"
-            ></v-icon>
-            {{drawer}}
-          </div>
+
         </v-expansion-panel-title>
         <v-expansion-panel-text>
-          <strong> {{ schedule.content }} </strong> <br>
-          <span> 일정 </span>
-          <span> {{ useDateFormat(schedule.duedate, 'MM-DD HH:mm') }}</span>
-          <span> 장소 </span>
-          <span> {{ schedule.place }}</span>
-          <span>{{ schedule.seq }}</span>
+          <div class="each">
+            <v-icon style="margin-right: 10px;">mdi-bullhorn-outline</v-icon>
+            <span> {{ schedule.content }} </span>
+          </div>
+          <div class="each">
+            <v-icon>mdi-calendar-range</v-icon>
+            <span style="margin-bottom: 10px;">{{useDateFormat(schedule.duedate, ref('MM-DD HH:mm')) }}</span>
+          </div>
+          <div class="each">
+            <v-icon>mdi-map-marker-outline</v-icon>
+            <a :href="'https://map.kakao.com/?q=' + schedule.place"  target="_blank" style="color: black; margin-bottom: 10px;"> {{schedule.place}}</a> <br>
+          </div>
+          <div class="each">
+            <v-icon @click="copy(invite_url+schedule.seq)" >mdi-account-multiple</v-icon>
+          </div>
+          <div class="icon_div">
+            <v-icon
+                icon="mdi-forum-outline"
+                @click="drawer = !drawer; sch_info.seq = schedule.seq"
+            ></v-icon>
+          </div>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
@@ -488,7 +507,15 @@ function inviteAgree(e) {
         temporary
         width="450"
     >
-      <v-list-item>{{sch_info.seq}} Chat</v-list-item>
+      <v-list-item>{{sch_info.title}} 채팅방 </v-list-item>
+      <span> {{ getUserCount }}</span>
+      <div
+          v-for="users in invited_user_list"
+          :key="users"
+      >
+        <div> {{users.nickname}} </div>
+      </div>
+
       <v-divider></v-divider>
       <v-list
           class="overflow-auto"
@@ -516,7 +543,6 @@ function inviteAgree(e) {
             {{useDateFormat(message.send_time, 'HH:mm')}}
           </div>
         </div>
-
        <!--        stomp 연결 -->
         <div
             class="chat"
@@ -571,6 +597,8 @@ function inviteAgree(e) {
     </v-navigation-drawer>
   </v-layout>
   </div>
+
+
 </template>
 <style scoped>
 
