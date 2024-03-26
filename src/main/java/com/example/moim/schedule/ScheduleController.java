@@ -31,7 +31,7 @@ public class ScheduleController {
     @GetMapping("main-board")
     @ResponseBody
     public List<Schedule> getAllPost(@RequestParam("email") String email) {
-        System.out.println("schedule controller access token :" + access_token);
+        System.out.println("schedule controller access token :");
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
         headers.add("Authorization", "b7a3565e8354402b9d4d2cdcc51bd302");

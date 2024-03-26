@@ -1,5 +1,7 @@
 package com.example.moim.member;
 
+import com.example.moim.config.security.CustomException;
+import com.example.moim.config.security.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,8 +26,11 @@ public class MemberService {
     }
 
     // 로그인
-    public Optional<Member> login(Member member) {
-        return memberRepository.login(member.getEmail(), member.getPw());
+    public Member login(Member member) {
+        // orElseThrow를 사용하여 코드 가독성 향상
+        // 해당 Member가 없다면 예외, 있다면 Return
+        return memberRepository.login(member.getEmail(), member.getPw())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
 
     // 채팅방 유저 확인
@@ -36,6 +41,5 @@ public class MemberService {
     public void update(String refreshToken, String email) {
         memberRepository.update(refreshToken, email);
     }
-
 
 }
