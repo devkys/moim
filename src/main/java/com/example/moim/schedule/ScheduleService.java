@@ -1,23 +1,22 @@
 package com.example.moim.schedule;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class ScheduleService {
 
     private final ScheduleRepository scheduleRepository;
-
-    public ScheduleService(ScheduleRepository scheduleRepository) {
-        this.scheduleRepository = scheduleRepository;
-    }
 
     // 로그인 유저의 전체 스케쥴 리스트로 가져오기
     public List<Schedule> getAll(String email) {
         return scheduleRepository.getAll(email);
     }
 
+    //
     public String getEmail(Long id) {
         return scheduleRepository.getEmail(id);
     }
@@ -35,9 +34,6 @@ public class ScheduleService {
     }
     public void update(Schedule schedule) {
         scheduleRepository.update(schedule.getTitle(), schedule.getContent(), schedule.getDuedate(), schedule.getPlace(), schedule.getSeq());
-
     }
-
-
 
 }

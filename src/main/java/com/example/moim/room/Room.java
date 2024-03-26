@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 @Component
 @DynamicInsert
 public class Room {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long seq;

@@ -27,7 +27,7 @@ const submit = handleSubmit(values => {
     url: 'api/users-mgmt/login',
     data: JSON.stringify(values, null)
   }).then(function (res) {
-    if(res.data) {
+    if(res.data && res.statusCode() === '200') {
       router.push({name: 'main', state: { user_info: res.data }})
     }
     else {

@@ -4,52 +4,51 @@ import com.example.moim.room.Room;
 import com.example.moim.room.RoomService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Repository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.List;
-import java.util.Optional;
 
-import static com.example.moim.member.MemberController.access_token;
 
 @Controller
 @RequestMapping("api/sch_mgmt")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
+@RequiredArgsConstructor
 public class ScheduleController {
+
     private final ScheduleService scheduleService;
 
     private final RoomService roomService;
 
-    public ScheduleController(ScheduleService scheduleService, RoomService roomService) {
-        this.scheduleService = scheduleService;
-        this.roomService = roomService;
-    }
-
     /*
-        로그인한 유저의 스케쥴 리스트로 반환
+        유저의 일정 리스트 반환
+        *. 내가 직접 생성한 일정만 반환
      */
     @GetMapping("main-board")
     @ResponseBody
     public List<Schedule> getAllPost(@RequestParam("email") String email) {
         System.out.println("schedule controller access token :" + access_token);
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.add("Content-Type", "application/json");
-//        headers.add("Authorization", "b7a3565e8354402b9d4d2cdcc51bd302");
-//        WebClient webClient = WebClient.create();
-//        String mainInfo = webClient.get()
-//                .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + email )
-//                .headers(h-> h.addAll(headers))
-//                .retrieve()
-//                .bodyToMono(String.class)
-//                .block();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "application/json");
+        headers.add("Authorization", "b7a3565e8354402b9d4d2cdcc51bd302");
+        WebClient webClient = WebClient.create();
+        String mainInfo = webClient.get()
+                .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + email )
+                .headers(h-> h.addAll(headers))
+                .retrieve()
+                .bodyToMono(String.class)
+                .block();
         System.out.println("main board controller email: "  + email);
         return scheduleService.getAll(email);
     }
 
+    /*
+        초대된 일정 반환
+     */
     @GetMapping("invite-board")
     @ResponseBody
     public List<Schedule> invitedGet(@RequestParam("email") String email) {
@@ -59,6 +58,7 @@ public class ScheduleController {
 
     /*
         초대 링크 클릭시, 세션 생성과 로그인 화면으로 리다이렉션
+        * 해당 일정의 시퀀스 번호로 세션 생성
      */
     @GetMapping("invite-sch/{id}")
     public RedirectView inviteSchedule(@PathVariable("id") String id, HttpServletRequest req) {

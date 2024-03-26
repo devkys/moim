@@ -2,11 +2,12 @@
 import axios from "axios";
 import {computed, reactive, ref, watch} from "vue";
 import {now, useClipboard, useDateFormat} from '@vueuse/core';
-import { useField, useForm} from "vee-validate";
+import {useField, useForm} from "vee-validate";
 import router from "@/router";
 import webstomp from "webstomp-client";
 import SockJS from "sockjs-client";
 import {useDropzone} from "vue3-dropzone";
+
 const schedule_list = ref();
 const invited_user_list = ref([]);
 const invite_list = ref();
@@ -32,7 +33,7 @@ const state = reactive({
   files: [],
 });
 
-const { getRootProps, isDragActive, ...rest } = useDropzone({
+const {getRootProps, isDragActive, ...rest} = useDropzone({
   onDrop,
 });
 
@@ -92,14 +93,24 @@ const getBase64 = file => {
   })
 }
 const chat = async () => {
-  if(state.files !== null && state.files[0] instanceof Blob) {
+  if (state.files !== null && state.files[0] instanceof Blob) {
     send_msg.value = await getBase64(state.files[0]);
-    client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, blob_type: send_msg.value, send_time: now() }));
+    client.send('/pub/chat/message', JSON.stringify({
+      room_id: sch_info.value.seq,
+      email: user_info.email,
+      blob_type: send_msg.value,
+      send_time: now()
+    }));
     state.files = null;
     send_msg.value = "";
   }
-  if(send_msg.value !== undefined) {
-    client.send('/pub/chat/message', JSON.stringify({ room_id: sch_info.value.seq, email: user_info.email, content: send_msg.value, send_time: now() }));
+  if (send_msg.value !== undefined) {
+    client.send('/pub/chat/message', JSON.stringify({
+      room_id: sch_info.value.seq,
+      email: user_info.email,
+      content: send_msg.value,
+      send_time: now()
+    }));
     send_msg.value = "";
   }
 }
@@ -139,13 +150,14 @@ function getMessage(roomId) {
       });
 }
 
-function getInvtedUser(roomId){
+function getInvtedUser(roomId) {
   axios.get('api/users-mgmt/invited-user?roomId=' + roomId)
-    .then((res) => {
-      invited_user_list.value = res.data;
-    });
+      .then((res) => {
+        invited_user_list.value = res.data;
+      });
 }
-const getUserCount = computed(()=> invited_user_list.value.length)
+
+const getUserCount = computed(() => invited_user_list.value.length)
 
 // 일정 삭제 (내가 생성한 것만)
 function deleteSchedule(s_id) {
@@ -231,18 +243,18 @@ function inviteAgree(e) {
 
 <template>
   <div class="total_div">
-  <h2>{{ user_info.nickname }}님의 일정</h2>
-  <!--  초대 수락 or 거절 modal -->
-  <v-dialog
-      v-model="invite_modal"
-      max-width="400"
-      persistent
-  >
-    <v-card
-        prepend-icon="mdi-email-fast-outline"
-        text="초대를 수락하시겠습니까"
-        title="유효한 초대"
+    <h2>{{ user_info.nickname }}님의 일정</h2>
+    <!--  초대 수락 or 거절 modal -->
+    <v-dialog
+        v-model="invite_modal"
+        max-width="400"
+        persistent
     >
+      <v-card
+          prepend-icon="mdi-email-fast-outline"
+          text="초대를 수락하시겠습니까"
+          title="유효한 초대"
+      >
         <v-spacer></v-spacer>
         <v-btn @click="invite_modal = false; inviteAgree(false)">
           거절
@@ -252,188 +264,190 @@ function inviteAgree(e) {
           수락
         </v-btn>
 
-    </v-card>
-  </v-dialog>
+      </v-card>
+    </v-dialog>
 
 
-<!--  로그인한 유저의 모든 일정 리스트 -->
-  <div class="list_div">
-    <v-expansion-panels variant="popout">
-      <v-expansion-panel
-          v-for="schedule in schedule_list"
-          :key="schedule"
-          class="schedule_list"
-          icon="mdi-expand"
-      >
-        <v-expansion-panel-title>
-          <h3> {{ schedule.title }}</h3>
-        </v-expansion-panel-title>
+    <!--  로그인한 유저의 모든 일정 리스트 -->
+    <div class="list_div">
+      <v-expansion-panels variant="popout">
+        <v-expansion-panel
+            v-for="schedule in schedule_list"
+            :key="schedule"
+            class="schedule_list"
+            icon="mdi-expand"
+        >
+          <v-expansion-panel-title>
+            <h3> {{ schedule.title }}</h3>
+          </v-expansion-panel-title>
 
-        <v-expansion-panel-text>
-          <div class="each">
-            <v-icon style="margin-right: 10px;">mdi-bullhorn-outline</v-icon>
-            <span> {{ schedule.content }} </span>
-          </div>
-          <div class="each">
-            <v-icon>mdi-calendar-range</v-icon>
-            <span style="margin-bottom: 10px;">{{useDateFormat(schedule.duedate, ref('MM-DD HH:mm')) }}</span>
-          </div>
-          <div class="each">
-            <v-icon>mdi-map-marker-outline</v-icon>
-            <a :href="'https://map.kakao.com/?q=' + schedule.place"  target="_blank" style="color: black; margin-bottom: 10px;"> {{schedule.place}}</a> <br>
-          </div>
-          <div class="each">
-            <v-icon @click="copy(invite_url+schedule.seq)" >mdi-account-multiple</v-icon>
-          </div>
-          <div class="icon_div">
-            <v-icon
-                icon="mdi-trash-can"
-                @click="deleteSchedule(schedule.seq)"
-            ></v-icon>
-            <v-icon
-                icon="mdi-forum-outline"
-                @click="drawer = !drawer; sch_info.seq = schedule.seq; sch_info.title = schedule.title"
-            ></v-icon>
-            <v-icon
-                icon="mdi-pencil"
-                @click="update_dialog = true;
+          <v-expansion-panel-text>
+            <div class="each">
+              <v-icon style="margin-right: 10px;">mdi-bullhorn-outline</v-icon>
+              <span> {{ schedule.content }} </span>
+            </div>
+            <div class="each">
+              <v-icon>mdi-calendar-range</v-icon>
+              <span style="margin-bottom: 10px;">{{ useDateFormat(schedule.duedate, ref('MM-DD HH:mm')) }}</span>
+            </div>
+            <div class="each">
+              <v-icon>mdi-map-marker-outline</v-icon>
+              <a :href="'https://map.kakao.com/?q=' + schedule.place" target="_blank"
+                 style="color: black; margin-bottom: 10px;"> {{ schedule.place }}</a> <br>
+            </div>
+            <div class="each">
+              <v-icon @click="copy(invite_url+schedule.seq)">mdi-account-multiple</v-icon>
+            </div>
+            <div class="icon_div">
+              <v-icon
+                  icon="mdi-trash-can"
+                  @click="deleteSchedule(schedule.seq)"
+              ></v-icon>
+              <v-icon
+                  icon="mdi-forum-outline"
+                  @click="drawer = !drawer; sch_info.seq = schedule.seq; sch_info.title = schedule.title"
+              ></v-icon>
+              <v-icon
+                  icon="mdi-pencil"
+                  @click="update_dialog = true;
                 update_seq.seq = schedule.seq;
                 update_title.title = schedule.title;
                 update_content.content = schedule.content;
                 update_duedate.duedate = schedule.duedate;
                 update_place.place = schedule.place;"
-            ></v-icon>
+              ></v-icon>
 
-            <v-icon
-                icon="mdi-share"
-                v-bind="props"
-                @click="copy(invite_url+schedule.seq)"
-            >
-            </v-icon>
+              <v-icon
+                  icon="mdi-share"
+                  v-bind="props"
+                  @click="copy(invite_url+schedule.seq)"
+              >
+              </v-icon>
 
-          </div>
-        </v-expansion-panel-text>
-      </v-expansion-panel>
-    </v-expansion-panels>
-  </div>
+            </div>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
+    </div>
 
-<!--  초대된 일정 리스트 -->
-  <div class="invite_div">
-    <v-expansion-panels variant="popout">
-      <v-expansion-panel
-          v-for="schedule in invite_list"
-          :key="schedule"
-          class="schedule_list"
-          icon="mdi-expand"
-      >
-        <v-expansion-panel-title>
-          <h3> {{ schedule.title }}</h3>
+    <!--  초대된 일정 리스트 -->
+    <div class="invite_div">
+      <v-expansion-panels variant="popout">
+        <v-expansion-panel
+            v-for="schedule in invite_list"
+            :key="schedule"
+            class="schedule_list"
+            icon="mdi-expand"
+        >
+          <v-expansion-panel-title>
+            <h3> {{ schedule.title }}</h3>
 
-        </v-expansion-panel-title>
-        <v-expansion-panel-text>
-          <div class="each">
-            <v-icon style="margin-right: 10px;">mdi-bullhorn-outline</v-icon>
-            <span> {{ schedule.content }} </span>
-          </div>
-          <div class="each">
-            <v-icon>mdi-calendar-range</v-icon>
-            <span style="margin-bottom: 10px;">{{useDateFormat(schedule.duedate, ref('MM-DD HH:mm')) }}</span>
-          </div>
-          <div class="each">
-            <v-icon>mdi-map-marker-outline</v-icon>
-            <a :href="'https://map.kakao.com/?q=' + schedule.place"  target="_blank" style="color: black; margin-bottom: 10px;"> {{schedule.place}}</a> <br>
-          </div>
-          <div class="each">
-            <v-icon @click="copy(invite_url+schedule.seq)" >mdi-account-multiple</v-icon>
-          </div>
-          <div class="icon_div">
-            <v-icon
-                icon="mdi-forum-outline"
-                @click="drawer = !drawer; sch_info.seq = schedule.seq"
-            ></v-icon>
-          </div>
-        </v-expansion-panel-text>
-      </v-expansion-panel>
-    </v-expansion-panels>
-  </div>
+          </v-expansion-panel-title>
+          <v-expansion-panel-text>
+            <div class="each">
+              <v-icon style="margin-right: 10px;">mdi-bullhorn-outline</v-icon>
+              <span> {{ schedule.content }} </span>
+            </div>
+            <div class="each">
+              <v-icon>mdi-calendar-range</v-icon>
+              <span style="margin-bottom: 10px;">{{ useDateFormat(schedule.duedate, ref('MM-DD HH:mm')) }}</span>
+            </div>
+            <div class="each">
+              <v-icon>mdi-map-marker-outline</v-icon>
+              <a :href="'https://map.kakao.com/?q=' + schedule.place" target="_blank"
+                 style="color: black; margin-bottom: 10px;"> {{ schedule.place }}</a> <br>
+            </div>
+            <div class="each">
+              <v-icon @click="copy(invite_url+schedule.seq)">mdi-account-multiple</v-icon>
+            </div>
+            <div class="icon_div">
+              <v-icon
+                  icon="mdi-forum-outline"
+                  @click="drawer = !drawer; sch_info.seq = schedule.seq"
+              ></v-icon>
+            </div>
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
+    </div>
 
-  <v-btn
-      style="float: right; display:block;"
-      icon="mdi-plus"
-      fab
-      elevation="11"
-      @click="add_dialog = true"
+    <v-btn
+        style="float: right; display:block;"
+        icon="mdi-plus"
+        fab
+        elevation="11"
+        @click="add_dialog = true"
 
-  >
-  </v-btn>
-
-<!--일정 추가 다이얼로그-->
-  <v-dialog
-      v-model="add_dialog"
-      width="auto"
-  >
-    <v-card
-        width="800"
-        prepend-icon="mdi-plus"
-        title="일정 추가하기"
     >
-      <v-card-text>
-        <form @submit.prevent="scheduleSave">
-          <v-row dense>
-            <v-col>
-              <v-text-field
-                  required
-                  label="일정 제목"
-                  v-model="title.value.value"
-                  :error-messages="title.errorMessage.value"
-              ></v-text-field>
-            </v-col>
-          </v-row>
+    </v-btn>
 
-          <v-row dense>
-            <v-col>
-              <v-text-field
-                  v-model="content.value.value"
-                  label="일정 내용"
-                  :error-messages="content.errorMessage.value"
-              ></v-text-field>
-            </v-col>
-          </v-row>
+    <!--일정 추가 다이얼로그-->
+    <v-dialog
+        v-model="add_dialog"
+        width="auto"
+    >
+      <v-card
+          width="800"
+          prepend-icon="mdi-plus"
+          title="일정 추가하기"
+      >
+        <v-card-text>
+          <form @submit.prevent="scheduleSave">
+            <v-row dense>
+              <v-col>
+                <v-text-field
+                    required
+                    label="일정 제목"
+                    v-model="title.value.value"
+                    :error-messages="title.errorMessage.value"
+                ></v-text-field>
+              </v-col>
+            </v-row>
 
-          <v-row dense>
-            <v-col>
-              <v-text-field
-                  label="장소"
-                  v-model="place.value.value"
-                  :error-messages="place.errorMessage.value"
-              ></v-text-field>
-            </v-col>
-            <input type="datetime-local"
-                   v-model="duedate.value.value"
-            >
-          </v-row>
-          <v-divider></v-divider>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn
-                text="닫기"
-                variant="plain"
-                @click="add_dialog = false"
-            ></v-btn>
+            <v-row dense>
+              <v-col>
+                <v-text-field
+                    v-model="content.value.value"
+                    label="일정 내용"
+                    :error-messages="content.errorMessage.value"
+                ></v-text-field>
+              </v-col>
+            </v-row>
 
-            <v-btn
-                color="primary"
-                type="submit"
-                text="저장"
-                variant="tonal"
-            ></v-btn>
-          </v-card-actions>
-        </form>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+            <v-row dense>
+              <v-col>
+                <v-text-field
+                    label="장소"
+                    v-model="place.value.value"
+                    :error-messages="place.errorMessage.value"
+                ></v-text-field>
+              </v-col>
+              <input type="datetime-local"
+                     v-model="duedate.value.value"
+              >
+            </v-row>
+            <v-divider></v-divider>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn
+                  text="닫기"
+                  variant="plain"
+                  @click="add_dialog = false"
+              ></v-btn>
 
-<!--  일정 수정 다이얼로그  -->
+              <v-btn
+                  color="primary"
+                  type="submit"
+                  text="저장"
+                  variant="tonal"
+              ></v-btn>
+            </v-card-actions>
+          </form>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <!--  일정 수정 다이얼로그  -->
     <v-dialog
         v-model="update_dialog"
         width="auto"
@@ -500,102 +514,103 @@ function inviteAgree(e) {
       </v-card>
     </v-dialog>
 
-<!-- chat sidebar -->
-  <v-layout>
-    <v-navigation-drawer
-        v-model="drawer"
-        temporary
-        width="450"
-    >
-      <v-list-item>{{sch_info.title}} 채팅방 </v-list-item>
-      <span> {{ getUserCount }}</span>
-      <div
-          v-for="users in invited_user_list"
-          :key="users"
+    <!-- chat sidebar -->
+    <v-layout>
+      <v-navigation-drawer
+          v-model="drawer"
+          temporary
+          width="450"
       >
-        <div> {{users.nickname}} </div>
-      </div>
-
-      <v-divider></v-divider>
-      <v-list
-          class="overflow-auto"
-          height="700"
-      >
-<!--      db 저장 정보-->
+        <v-list-item>{{ sch_info.title }} 채팅방</v-list-item>
+        <span> {{ getUserCount }}</span>
         <div
-            class="chat"
-            v-for="message in message_list"
-            :key="message"
+            v-for="users in invited_user_list"
+            :key="users"
         >
-          <div
-              v-if="message.email !== user_info.email"
-          >
-            {{message.email}}
-          </div>
-          <div
-              :class="{'msg sent' : message.email === user_info.email, 'msg rcvd' : message.email !== user_info.email}"
-          >
-            {{message.content}}
-            <template v-if="message.blob_type">
-<!--              <Image :src="message.blob_type" alt="missing" style="max-height:100px; max-width:100px;" preview/>-->
-              <img :src="message.blob_type" alt="missing" style="max-height:250px; max-width:250px;"/>
-            </template>
-            {{useDateFormat(message.send_time, 'HH:mm')}}
-          </div>
+          <div> {{ users.nickname }}</div>
         </div>
-       <!--        stomp 연결 -->
-        <div
-            class="chat"
-            v-for="(item, index) in chat_array"
-            :key="index"
+
+        <v-divider></v-divider>
+        <v-list
+            class="overflow-auto"
+            height="700"
         >
+          <!--      db 저장 정보-->
           <div
-              v-if="item.email !== user_info.email"
+              class="chat"
+              v-for="message in message_list"
+              :key="message"
           >
-            {{item.email}}
+            <div
+                v-if="message.email !== user_info.email"
+            >
+              {{ message.email }}
+            </div>
+            <div
+                :class="{'msg sent' : message.email === user_info.email, 'msg rcvd' : message.email !== user_info.email}"
+            >
+              {{ message.content }}
+              <template v-if="message.blob_type">
+                <!--              <Image :src="message.blob_type" alt="missing" style="max-height:100px; max-width:100px;" preview/>-->
+                <img :src="message.blob_type" alt="missing" style="max-height:250px; max-width:250px;"/>
+              </template>
+              {{ useDateFormat(message.send_time, 'HH:mm') }}
+            </div>
           </div>
+          <!--        stomp 연결 -->
           <div
-              :class="{'msg sent' : item.email === user_info.email, 'msg rcvd' : item.email !== user_info.email}"
+              class="chat"
+              v-for="(item, index) in chat_array"
+              :key="index"
           >
-            {{item.content}}
-            <template v-if="item.blob_type">
-<!--              <Image :src="item.blob_type" alt="Image" width="250" preview />-->
-              <img :src="item.blob_type" alt="missing" style="max-height:250px; max-width: 250px;" class="[data-zoomable]">
-            </template>
+            <div
+                v-if="item.email !== user_info.email"
+            >
+              {{ item.email }}
+            </div>
+            <div
+                :class="{'msg sent' : item.email === user_info.email, 'msg rcvd' : item.email !== user_info.email}"
+            >
+              {{ item.content }}
+              <template v-if="item.blob_type">
+                <!--              <Image :src="item.blob_type" alt="Image" width="250" preview />-->
+                <img :src="item.blob_type" alt="missing" style="max-height:250px; max-width: 250px;"
+                     class="[data-zoomable]">
+              </template>
 
-            {{useDateFormat(item.send_time, 'HH:mm')}}
+              {{ useDateFormat(item.send_time, 'HH:mm') }}
+            </div>
           </div>
-        </div>
-      </v-list>
-      <v-divider></v-divider>
-      <v-list>
-        <v-form @submit.prevent="chat">
-          <v-container>
-            <v-row>
-              <v-col cols="12">
-                <v-text-field
-                    v-model="send_msg"
-                    v-bind="getRootProps()"
-                    label="채팅 메시지"
-                    type="text file"
-                    variant="filled"
-                    append-icon="mdi-send"
-                    append-inner-icon="mdi-map-maker"
-                    @click:append="chat"
-                >
-                  <div class="file-item" v-for="(file, index) in state.files" :key="index">
-                    <span>{{ file.name }}</span>
-                    <span class="delete-file" @click="handleClickDeleteFile(index)">Delete</span>
-                  </div>
-                </v-text-field>
-              </v-col>
-            </v-row>
-          </v-container>
-        </v-form>
-      </v-list>
+        </v-list>
+        <v-divider></v-divider>
+        <v-list>
+          <v-form @submit.prevent="chat">
+            <v-container>
+              <v-row>
+                <v-col cols="12">
+                  <v-text-field
+                      v-model="send_msg"
+                      v-bind="getRootProps()"
+                      label="채팅 메시지"
+                      type="text file"
+                      variant="filled"
+                      append-icon="mdi-send"
+                      append-inner-icon="mdi-map-maker"
+                      @click:append="chat"
+                  >
+                    <div class="file-item" v-for="(file, index) in state.files" :key="index">
+                      <span>{{ file.name }}</span>
+                      <span class="delete-file" @click="handleClickDeleteFile(index)">Delete</span>
+                    </div>
+                  </v-text-field>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-form>
+        </v-list>
 
-    </v-navigation-drawer>
-  </v-layout>
+      </v-navigation-drawer>
+    </v-layout>
   </div>
 
 
@@ -608,10 +623,11 @@ h2 {
 }
 
 .total_div {
-  width:50%;
+  width: 50%;
   margin: 0 auto;
-  margin-top:30px;
+  margin-top: 30px;
 }
+
 .list_div {
   margin-bottom: 100px;
 }
@@ -627,6 +643,7 @@ h2 {
 v-expansion-panels {
   background-color: #F5F7FA;
 }
+
 .schedule_list {
   margin: 0 auto;
   background-color: #F5F7FA;
@@ -664,7 +681,10 @@ v-expansion-panels {
 }
 
 
-* {margin: 0; box-sizing: border-box;}
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
 
 .chat {
   --rad: 20px;
@@ -703,12 +723,12 @@ v-expansion-panels {
 /* Improve radius for messages group */
 
 .msg.sent:first-child,
-.msg.rcvd+.msg.sent {
+.msg.rcvd + .msg.sent {
   border-top-right-radius: var(--rad);
 }
 
 .msg.rcvd:first-child,
-.msg.sent+.msg.rcvd {
+.msg.sent + .msg.rcvd {
   border-top-left-radius: var(--rad);
 }
 
@@ -738,8 +758,8 @@ v-expansion-panels {
 /* Show time only for first message in group */
 
 .msg:first-child::before,
-.msg.sent+.msg.rcvd::before,
-.msg.rcvd+.msg.sent::before {
+.msg.sent + .msg.rcvd::before,
+.msg.rcvd + .msg.sent::before {
   /* Show only for first message in group */
   display: block;
 }
