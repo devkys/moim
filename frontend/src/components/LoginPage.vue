@@ -27,13 +27,17 @@ const submit = handleSubmit(values => {
     url: 'api/users-mgmt/login',
     data: JSON.stringify(values, null)
   }).then(function (res) {
-    if(res.data && res.statusCode() === '200') {
+    if(res.data) {
+      // login DTO 정보를 응답으로 받음
       router.push({name: 'main', state: { user_info: res.data }})
     }
-    else {
-      alert("이메일 또는 비밀번호가 잘못되었습니다.");
+  }).catch(function (error) {
+    if(error.response) {
+      // 요청이 전송되고, 2xx 외의 상태 코드로 응답 함
+      console.log(error.response.status);
+      alert(error.response.data.message);
     }
-  }).catch((e) => console.log(`${e.error}`))
+  })
 })
 
 </script>

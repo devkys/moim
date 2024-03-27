@@ -16,11 +16,14 @@ public class MemberService {
     private final MemberRepository memberRepository;
 
     // 이메일 중복 확인
-    public boolean validateDuplicateEmail(Member member) {
-        return memberRepository.existsById(member.getEmail());
+    public void validateDuplicateEmail(Member member) {
+        if(memberRepository.existsById(member.getEmail())) {
+           throw new CustomException(ErrorCode.HAS_EMAIL);
+        }
     }
 
     // 회원가입
+    // 회원 가입 전 이메일 중복확인 및 패스워드 암호화
     public Member save(Member member) {
         return memberRepository.save(member);
     }
@@ -38,6 +41,8 @@ public class MemberService {
         return memberRepository.invitedUser(room_id);
     }
 
+    // 허가된 사용자인 경우 토큰이 발급됨
+    // 발급된 토근을 사용자 db에 저장 후 업데이트
     public void update(String refreshToken, String email) {
         memberRepository.update(refreshToken, email);
     }

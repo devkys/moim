@@ -31,23 +31,18 @@ public class MemberController {
 
     //    code formatting : command option L
     private final MemberService memberService;
+
+    private final LoginDTO loginDTO;
     public static final String login_url = "http://192.168.0.123:5173/login";
     public static final String redirect_url = "http://192.168.0.123:5173/main";
-    public static final String client_secret = "FBD9C880052D4EA6B258D99C6449168656422A57";
+    public static final String client_secret = "BEA593123F504846B43FE11E0E0762720130A845";
 
     // 회원가입
     @PostMapping("signup")
     @ResponseBody
-    public boolean signup(@RequestBody Member member) {
-        boolean duplicated = memberService.validateDuplicateEmail(member);
-        if (duplicated) {
-            System.out.println("이메일 중복");
-            return false;
-        } else {
-            System.out.println("유효한 이메일 아이디");
-            memberService.save(member);
-            return true;
-        }
+    public void signup(@RequestBody Member member) {
+        memberService.validateDuplicateEmail(member);
+        memberService.save(member);
     }
 
     // 로그인
@@ -56,13 +51,16 @@ public class MemberController {
     public LoginDTO signin(@RequestBody Member member, HttpServletRequest request) throws JsonProcessingException {
         Member login_member =  memberService.login(member);
 
+        System.out.println("login_member:" + login_member);
+        System.out.println("-------------------------");
+        System.out.println("login member nickname" + login_member.getNickname());
         // 해당 request로 세션 생성된 것이 있는지 확인
         HttpSession session = request.getSession();
 
         System.out.println("로그인 후의 스케쥴 아이디 : " + session.getAttribute("sch_id"));
 
         // 회원이 존재한다면 DBridge Oauth2.0 API 요청
-        // Authorization Code 를 발급 받기 위한 uri ( DBridge oauth2.0 api 요청 uri)
+//         Authorization Code 를 발급 받기 위한 uri ( DBridge oauth2.0 api 요청 uri)
         String auth_url = "https://dev-api.cyber-i.com/svc/moim/auth?USER_ID=firstClient&login_url=" + login_url +
                 "&client_id=firstClient&redircet_uri=" + redirect_url + "&response_type=code";
 
@@ -124,13 +122,11 @@ public class MemberController {
         memberService.update(refresh_token, login_member.getEmail());
 
         // 유저 정보 email, nickname, accessToken dto 반환
-        LoginDTO loginDTO = new LoginDTO();
-        loginDTO.setEmail(member.getEmail());
-        loginDTO.setNickname(member.getNickname());
+        loginDTO.setEmail(login_member.getEmail());
+        loginDTO.setNickname(login_member.getNickname());
         loginDTO.setAccess_token(access_token);
 
         return loginDTO;
-
     }
 
     // 채팅방에 초대된 유저 체크

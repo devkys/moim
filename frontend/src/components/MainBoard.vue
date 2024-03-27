@@ -15,7 +15,7 @@ const add_dialog = ref(false);
 const update_dialog = ref(false);
 const invite_modal = ref(false);
 const {copy} = useClipboard();
-const invite_url = "http://localhost:8081/api/sch_mgmt/invite-sch/"
+const invite_url = "http://localhost:8081/api/sch-mgmt/invite-sch/"
 const drawer = ref(null);
 const sch_info = ref([]);
 const update_seq = ref([]);
@@ -27,7 +27,6 @@ const send_msg = ref();
 const {user_info} = history.state;
 const message_list = ref();
 const chat_array = ref([]);
-// const user_email = history.state.email;
 
 const state = reactive({
   files: [],
@@ -36,6 +35,38 @@ const state = reactive({
 const {getRootProps, isDragActive, ...rest} = useDropzone({
   onDrop,
 });
+
+// 로그인한 유저가 생성한 일정
+axios.post('api/sch-mgmt/main-board', user_info)
+    .then((res) => {
+      schedule_list.value = res.data;
+    })
+    .catch((error) => {
+      alert(error.response.data.message);
+    });
+
+
+// 다른 유저로부터 초대받은 일정
+function getInvited() {
+  return axios.get('api/sch-mgmt/invite-board?email=' + user_info.email);
+}
+
+// 세션을 조회하여 초대 여부 확인
+function whetherIvite() {
+  return axios.get('api/sch-mgmt/check-invite?email=' + user_info.email);
+}
+
+//초대 일정 axios all로 멀티 요청
+axios.all([getInvited(), whetherIvite()])
+    .then(axios.spread(function (invited, whether) {
+      invite_list.value = invited.data;
+
+      // 초대된 링크 여부 확인
+      if (whether.data.toString() === "true") {
+        invite_modal.value = true;
+      }
+    }))
+    .catch((e) => console.log(`${e.error} : ${e.message}`));
 
 watch(state, () => {
   console.log('state', state);
@@ -59,7 +90,6 @@ const sock = new SockJS("http://localhost:8081/stomp/chat");
 const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client를 내어준다.
 
 let subscription = null; // 구독을 추적하기 위한 변수
-
 
 client.connect({}, () => {
 
@@ -115,33 +145,7 @@ const chat = async () => {
   }
 }
 
-// 로그인한 유저가 생성한 일정
-function getMy() {
-  return axios.get('api/sch_mgmt/main-board?email=' + user_info.email);
-}
 
-// 다른 유저로부터 초대받은 일정
-function getInvited() {
-  return axios.get('api/sch_mgmt/invite-board?email=' + user_info.email);
-}
-
-// 세션을 조회하여 초대 여부 확인
-function whetherIvite() {
-  return axios.get('api/sch_mgmt/check-invite?email=' + user_info.email);
-}
-
-// 내 일정, 초대 일정 axios all로 멀티 요청
-axios.all([getMy(), getInvited(), whetherIvite()])
-    .then(axios.spread(function (my, invited, whether) {
-      schedule_list.value = my.data;
-      invite_list.value = invited.data;
-
-      // 초대된 링크 여부 확인
-      if (whether.data.toString() === "true") {
-        invite_modal.value = true;
-      }
-    }))
-    .catch((e) => console.log(`${e.error} : ${e.message}`));
 
 function getMessage(roomId) {
   axios.get('api/chat/getAll?roomId=' + roomId)
@@ -161,7 +165,7 @@ const getUserCount = computed(() => invited_user_list.value.length)
 
 // 일정 삭제 (내가 생성한 것만)
 function deleteSchedule(s_id) {
-  axios.post('api/sch_mgmt/deleteOne', s_id)
+  axios.post('api/sch-mgmt/deleteOne', s_id)
       .then((res) => {
         if (res.data.value === 1) {
           alert("삭제 완료");
@@ -198,7 +202,7 @@ const duedate = useField('duedate');
 
 const scheduleSave = handleSubmit(values => {
   values.email = user_info.email;
-  axios.post('api/sch_mgmt/save', values)
+  axios.post('api/sch-mgmt/save', values)
       .then(res => {
         if (res.data) {
           router.go(0);
@@ -212,7 +216,7 @@ const scheduleSave = handleSubmit(values => {
 const scheduleUpdate = handleSubmit(values => {
   values.email = user_info.email;
   values.seq = update_seq.value.seq;
-  axios.post('api/sch_mgmt/update', values)
+  axios.post('api/sch-mgmt/update', values)
       .then(res => {
         if (res.data) {
           router.go(0);
@@ -522,14 +526,13 @@ function inviteAgree(e) {
           width="450"
       >
         <v-list-item>{{ sch_info.title }} 채팅방</v-list-item>
-        <span> {{ getUserCount }}</span>
+        <span> {{ getUserCount }} 명</span>
         <div
             v-for="users in invited_user_list"
             :key="users"
         >
-          <div> {{ users.nickname }}</div>
+          <div> {{ users.nickname }} </div>
         </div>
-
         <v-divider></v-divider>
         <v-list
             class="overflow-auto"
@@ -546,6 +549,7 @@ function inviteAgree(e) {
             >
               {{ message.email }}
             </div>
+            {{ useDateFormat(message.send_time, 'HH:mm') }}
             <div
                 :class="{'msg sent' : message.email === user_info.email, 'msg rcvd' : message.email !== user_info.email}"
             >
@@ -554,9 +558,9 @@ function inviteAgree(e) {
                 <!--              <Image :src="message.blob_type" alt="missing" style="max-height:100px; max-width:100px;" preview/>-->
                 <img :src="message.blob_type" alt="missing" style="max-height:250px; max-width:250px;"/>
               </template>
-              {{ useDateFormat(message.send_time, 'HH:mm') }}
             </div>
           </div>
+
           <!--        stomp 연결 -->
           <div
               class="chat"
@@ -568,6 +572,7 @@ function inviteAgree(e) {
             >
               {{ item.email }}
             </div>
+            {{ useDateFormat(item.send_time, 'HH:mm') }}
             <div
                 :class="{'msg sent' : item.email === user_info.email, 'msg rcvd' : item.email !== user_info.email}"
             >
@@ -577,8 +582,6 @@ function inviteAgree(e) {
                 <img :src="item.blob_type" alt="missing" style="max-height:250px; max-width: 250px;"
                      class="[data-zoomable]">
               </template>
-
-              {{ useDateFormat(item.send_time, 'HH:mm') }}
             </div>
           </div>
         </v-list>

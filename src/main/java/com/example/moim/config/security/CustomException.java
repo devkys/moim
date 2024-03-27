@@ -6,7 +6,7 @@ import lombok.Getter;
 
 
 /*
-    error code를 담을 class 생성
+    runtimeexcetion 상속 받아서 런타임 때 예외 발생
  */
 @Getter
 @AllArgsConstructor

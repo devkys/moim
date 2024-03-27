@@ -1,21 +1,31 @@
 package com.example.moim.schedule;
 
+import com.example.moim.config.security.CustomException;
+import com.example.moim.config.security.ErrorCode;
+import com.example.moim.member.LoginDTO;
 import com.example.moim.room.Room;
 import com.example.moim.room.RoomService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.view.RedirectView;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
 
 @Controller
-@RequestMapping("api/sch_mgmt")
+@RequestMapping("api/sch-mgmt")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
 @RequiredArgsConstructor
 public class ScheduleController {
@@ -28,22 +38,47 @@ public class ScheduleController {
         유저의 일정 리스트 반환
         *. 내가 직접 생성한 일정만 반환
      */
-    @GetMapping("main-board")
+    @PostMapping("main-board")
     @ResponseBody
-    public List<Schedule> getAllPost(@RequestParam("email") String email) {
-        System.out.println("schedule controller access token :");
+    public List<ScheduleDTO> getAllPost(@RequestBody LoginDTO loginMember) throws JsonProcessingException {
+        System.out.println("================DBridge API access token으로 호출=========================");
+        System.out.println("프론트에서 받은 LoginMember email" + loginMember.getEmail());
+        System.out.println("프론트에서 받은 LoginMember nickname" + loginMember.getNickname());
+        System.out.println("프론트에서 받은 LoginMember access token" + loginMember.getAccess_token());
+
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
-        headers.add("Authorization", "b7a3565e8354402b9d4d2cdcc51bd302");
+        headers.add("Authorization", loginMember.getAccess_token());
         WebClient webClient = WebClient.create();
         String mainInfo = webClient.get()
-                .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + email )
-                .headers(h-> h.addAll(headers))
+                .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + loginMember.getEmail())
+                .headers(h -> h.addAll(headers))
                 .retrieve()
-                .bodyToMono(String.class)
-                .block();
-        System.out.println("main board controller email: "  + email);
-        return scheduleService.getAll(email);
+                .onStatus(HttpStatus.UNAUTHORIZED::equals,
+                        response -> Mono.error(
+                                new CustomException(ErrorCode.UNAUTHORIZED_KEY)
+                        )).bodyToMono(String.class).block();
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(mainInfo);
+
+
+        int resSize = rootNode.get("schOut").size();
+        System.out.println("응답 받은 객체 사이즈 " + resSize);
+
+
+//        String mainInco = webClient.get()
+//                .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + loginMember.getEmail())
+//                .retrieve()
+//                .bodyToMono(String.class).block();
+
+
+        List<ScheduleDTO> scheduleDTOS = mapper.readValue(rootNode.get("schOut").toString(), new TypeReference<>() {});
+
+        System.out.println("DBridge로 부터 응답 받은 스케쥴 리스트 " + scheduleDTOS);
+
+        return scheduleDTOS;
+
     }
 
     /*
@@ -80,7 +115,7 @@ public class ScheduleController {
         Object sch_id = session.getAttribute("sch_id");
 
         // 세션 값 null
-        if(sch_id == null) {
+        if (sch_id == null) {
             System.out.println("초대장 없음");
             return "false";
         } else {
@@ -88,7 +123,7 @@ public class ScheduleController {
                 세션 값 not null
              */
             Room room = roomService.alreadyEnter(email, (Long.parseLong(sch_id.toString())));
-            if(scheduleService.getEmail(Long.parseLong(sch_id.toString())).equals(email) || room != null) {
+            if (scheduleService.getEmail(Long.parseLong(sch_id.toString())).equals(email) || room != null) {
                 // 세션 값은 있지만 이미 초대된 방의 링크를 클릭했을 때 세션 끊기
                 session.invalidate();
                 return "false";
@@ -100,19 +135,21 @@ public class ScheduleController {
 
     @PostMapping("save")
     @ResponseBody
-    public boolean saveSchedule(@RequestBody Schedule reqData){
+    public boolean saveSchedule(@RequestBody Schedule reqData) {
         System.out.println("생성하고 싶은 일정 " + reqData);
         scheduleService.save(reqData);
         return true;
     }
+
     @PostMapping("update")
     @ResponseBody
-    public boolean updateSchedule(@RequestBody Schedule schedule){
+    public boolean updateSchedule(@RequestBody Schedule schedule) {
         System.out.println("생성하고 싶은 일정 " + schedule);
 //        scheduleService.update(reqData.getTitle(), reqData.getContent(), reqData.getDuedate(), reqData.getPlace(), reqData.getSeq());
         scheduleService.update(schedule);
         return true;
     }
+
     @PostMapping("deleteOne")
     @ResponseBody
     public int deleteSchedule(@RequestBody String scheduleId) {

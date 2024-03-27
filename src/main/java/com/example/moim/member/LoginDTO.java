@@ -14,5 +14,5 @@ public class LoginDTO {
     private String email;
     private String nickname;
     private String access_token;
-//    private String refresh_token;
+
 }
