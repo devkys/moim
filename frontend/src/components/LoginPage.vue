@@ -32,9 +32,8 @@ const submit = handleSubmit(values => {
       router.push({name: 'main', state: { user_info: res.data }})
     }
   }).catch(function (error) {
-    if(error.response) {
-      // 요청이 전송되고, 2xx 외의 상태 코드로 응답 함
-      console.log(error.response.status);
+    if(error.response.data.code==="ACCOUNT-001") {
+      console.error(error.response.data.code.toJSON);
       alert(error.response.data.message);
     }
   })

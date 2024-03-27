@@ -23,6 +23,11 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+
+/*
+    유저 컨트롤러
+    회원가입, 이메일 중복화인, 로그인, 채팅방에 초대된 유저 확인
+ */
 @Controller
 @RequestMapping("api/users-mgmt")
 @CrossOrigin(origins = "*", allowedHeaders = "*")
@@ -33,15 +38,18 @@ public class MemberController {
     private final MemberService memberService;
 
     private final LoginDTO loginDTO;
-    public static final String login_url = "http://192.168.0.123:5173/login";
-    public static final String redirect_url = "http://192.168.0.123:5173/main";
+    public static final String login_url = "http://192.168.0.11:5173/login";
+    public static final String redirect_url = "http://192.168.0.11:5173/main";
     public static final String client_secret = "BEA593123F504846B43FE11E0E0762720130A845";
 
     // 회원가입
     @PostMapping("signup")
     @ResponseBody
     public void signup(@RequestBody Member member) {
+        // 이메일 중복확인
         memberService.validateDuplicateEmail(member);
+
+        // 회원가입 처리
         memberService.save(member);
     }
 

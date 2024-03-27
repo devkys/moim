@@ -22,6 +22,7 @@ import org.springframework.web.servlet.view.RedirectView;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 
 @Controller
@@ -40,18 +41,21 @@ public class ScheduleController {
      */
     @PostMapping("main-board")
     @ResponseBody
-    public List<ScheduleDTO> getAllPost(@RequestBody LoginDTO loginMember) throws JsonProcessingException {
+    public List<ScheduleDTO> getAllPost(@RequestBody Optional<LoginDTO> loginMember) throws JsonProcessingException {
+        loginMember.orElseThrow(()-> new CustomException(ErrorCode.WRONG_ACCESS));
+
         System.out.println("================DBridge API access token으로 호출=========================");
-        System.out.println("프론트에서 받은 LoginMember email" + loginMember.getEmail());
-        System.out.println("프론트에서 받은 LoginMember nickname" + loginMember.getNickname());
-        System.out.println("프론트에서 받은 LoginMember access token" + loginMember.getAccess_token());
+        System.out.println("프론트에서 받은 LoginMember email" + loginMember.get().getEmail());
+        System.out.println("프론트에서 받은 LoginMember nickname" + loginMember.get().getNickname());
+        System.out.println("프론트에서 받은 LoginMember access token" + loginMember.get().getAccess_token());
+
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
-        headers.add("Authorization", loginMember.getAccess_token());
+        headers.add("Authorization", loginMember.get().getAccess_token());
         WebClient webClient = WebClient.create();
         String mainInfo = webClient.get()
-                .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + loginMember.getEmail())
+                .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + loginMember.get().getEmail())
                 .headers(h -> h.addAll(headers))
                 .retrieve()
                 .onStatus(HttpStatus.UNAUTHORIZED::equals,
@@ -65,13 +69,6 @@ public class ScheduleController {
 
         int resSize = rootNode.get("schOut").size();
         System.out.println("응답 받은 객체 사이즈 " + resSize);
-
-
-//        String mainInco = webClient.get()
-//                .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + loginMember.getEmail())
-//                .retrieve()
-//                .bodyToMono(String.class).block();
-
 
         List<ScheduleDTO> scheduleDTOS = mapper.readValue(rootNode.get("schOut").toString(), new TypeReference<>() {});
 

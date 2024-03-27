@@ -7,7 +7,10 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Component;
 
-@Entity(name="member")
+/*
+    db 테이블과 매핑되는 유저 엔티티 도메인
+ */
+@Entity(name = "member")
 @Getter
 @Setter
 @Data

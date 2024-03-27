@@ -1,28 +1,28 @@
 <script setup>
 // import { ref} from 'vue'
-import { useField, useForm } from 'vee-validate'
+import {useField, useForm} from 'vee-validate'
 import axios from "axios";
 import router from "@/router";
 
-const { handleSubmit, handleReset } = useForm({
+const {handleSubmit, handleReset} = useForm({
   validationSchema: {
-    nickname (value) {
+    nickname(value) {
       if (value?.length >= 2) return true
 
       return '2글자 이상 입력해주세요.'
     },
-    email (value) {
+    email(value) {
       if (/^[a-z.-]+@[a-z.-]+\.[a-z]+$/i.test(value)) return true
 
       return '유효한 이메일 형식을 입력해주세요.'
     },
-    pw (value) {
-      if(/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,15}$/.test(value)) return true
+    pw(value) {
+      if (/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,15}$/.test(value)) return true
 
       return '영문 숫자 특수기호 조합 8자리 이상 입력해주세요.'
     },
     pw_confirm(value) {
-      if(pw.value.value === value) return true
+      if (pw.value.value === value) return true
       return '비밀번호가 일치하지 않습니다.'
     },
   },
@@ -36,15 +36,15 @@ const nickname = useField('nickname')
 const submit = handleSubmit(values => {
   // alert(JSON.stringify(values, null, 2))
   axios.post('api/users-mgmt/signup', values)
-      .then(res =>  {
-        if(res.data) {
-          alert("회원 가입 성공! 로그인 페이지로 이동합니다.");
-          router.push({name :'login'})
-        } else {
-          alert("중복된 이메일. 새로운 이메일을 입력해주세요.");
+      .then(() => {
+        alert("회원 가입 성공! 로그인 페이지로 이동합니다.");
+        router.push({name: 'login'})
+      })
+      .catch((error) => {
+        if (error.response) {
+          alert(error.response.data.message);
         }
       })
-      .catch(err => console.log(err))
 })
 
 </script>
@@ -106,10 +106,12 @@ h1 {
   margin-bottom: 50px;
   text-align: center;
 }
+
 form {
   width: 50%;
   margin: 0 auto;
 }
+
 .btn_div {
   text-align: center;
 }

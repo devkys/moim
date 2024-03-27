@@ -36,13 +36,13 @@ public class MemberService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
 
-    // 채팅방 유저 확인
+    // 채팅방 유저 확인 -> 서브 쿼리 존재
     public List<Member> invitedUser(Long room_id) {
         return memberRepository.invitedUser(room_id);
     }
 
-    // 허가된 사용자인 경우 토큰이 발급됨
-    // 발급된 토근을 사용자 db에 저장 후 업데이트
+    // 허가된 사용자인 경우 OAuth2.0 토큰이 발급됨
+    // 발급된 refresh token을 사용자 db에 저장 후 업데이트
     public void update(String refreshToken, String email) {
         memberRepository.update(refreshToken, email);
     }
