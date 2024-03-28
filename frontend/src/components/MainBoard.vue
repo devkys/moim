@@ -528,7 +528,7 @@ function inviteAgree(e) {
               v-for="users in invited_user_list"
               :key="users"
           >
-            <span> {{ users.nickname }}</span>
+            <span v-if="user_info===users.nickname"> {{ users.nickname }} </span>
           </div>
           <v-divider></v-divider>
           <v-list
@@ -545,12 +545,12 @@ function inviteAgree(e) {
                   v-if="message.nickname !== user_info.nickname"
               >
                 {{ message.nickname }} <br>
-                {{ useDateFormat(message.send_time, 'HH:mm') }}
               </div>
               <div
                   :class="{'msg sent' : message.nickname === user_info.nickname, 'msg rcvd' : message.nickname !== user_info.nickname}"
               >
                 {{ message.content }}
+                {{ useDateFormat(message.send_time, 'HH:mm') }}
                 <template v-if="message.blob_type">
                   <img :src="message.blob_type" alt="missing" style="max-height:250px; max-width:250px;"/>
                 </template>
@@ -567,12 +567,12 @@ function inviteAgree(e) {
                   v-if="item.nickname !== user_info.nickname"
               >
                 {{ item.nickname }} <br>
-                {{ useDateFormat(item.send_time,  `HH:mm`) }}
               </div>
               <div
                   :class="{'msg sent' : item.nickname === user_info.nickname, 'msg rcvd' : item.nickname !== user_info.nickname}"
               >
                 {{ item.content }}
+                {{ useDateFormat(item.send_time,  `HH:mm`) }}
                 <template v-if="item.blob_type">
                   <img :src="item.blob_type" alt="missing" style="max-height:250px; max-width: 250px;"
                        class="[data-zoomable]">
