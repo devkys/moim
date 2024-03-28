@@ -3,6 +3,7 @@ package com.example.moim.schedule;
 import com.example.moim.config.security.CustomException;
 import com.example.moim.config.security.ErrorCode;
 import com.example.moim.member.LoginDTO;
+import com.example.moim.member.MemberService;
 import com.example.moim.room.Room;
 import com.example.moim.room.RoomService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,6 +24,7 @@ import org.springframework.web.servlet.view.RedirectView;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -33,7 +36,14 @@ public class ScheduleController {
 
     private final ScheduleService scheduleService;
 
+    private final MemberService memberService;
+
     private final RoomService roomService;
+
+    public static final String redirect_url = "http://192.168.0.123:8081/api/sch-mgmt/main-board";
+
+    public static final String client_secret = "BEA593123F504846B43FE11E0E0762720130A845";
+
 
     /*
         유저의 일정 리스트 반환
@@ -42,30 +52,43 @@ public class ScheduleController {
     @PostMapping("main-board")
     @ResponseBody
     public List<ScheduleDTO> getAllPost(@RequestBody Optional<LoginDTO> loginMember) throws JsonProcessingException {
+
+        // 로그인 서비스 없이 main api를 호출했을 때 예외 발생 시킴
         loginMember.orElseThrow(()-> new CustomException(ErrorCode.WRONG_ACCESS));
 
-        System.out.println("================DBridge API access token으로 호출=========================");
-        System.out.println("프론트에서 받은 LoginMember email" + loginMember.get().getEmail());
-        System.out.println("프론트에서 받은 LoginMember nickname" + loginMember.get().getNickname());
-        System.out.println("프론트에서 받은 LoginMember access token" + loginMember.get().getAccess_token());
+        System.out.println("================DBridge API access token으로 호출=========================\n");
+        System.out.println("프론트에서 받은 LoginMember email\t" + loginMember.get().getEmail());
+        System.out.println("프론트에서 받은 LoginMember nickname\t" + loginMember.get().getNickname());
+        System.out.println("프론트에서 받은 LoginMember Code Value(Auth Code)\t" + loginMember.get().getCodeValue());
+        System.out.println("프론트에서 받은 LoginMember access token\t" + loginMember.get().getAccess_token());
+        System.out.println("프론트에서 받은 LoginMember access token 만료 기간\t" + loginMember.get().getExpires_in());
+
+        //토근 재발급 uri
+        String token_url = "https://dev-api.cyber-i.com/svc/moim/token?code=" + loginMember.get().getCodeValue() + "&client_id=firstClient&client_secret=" + client_secret +
+                "&grant_type=authorization_code&redirect_uri=" + redirect_url + "refresh_token=" + memberService.getRefreshTkn(loginMember.get().getEmail());
 
 
+        // 헤더에 토큰 세팅
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Type", "application/json");
         headers.add("Authorization", loginMember.get().getAccess_token());
+
+        // 외부 api를 호출할 WebClient 생성
         WebClient webClient = WebClient.create();
+
+        // response를 String으로 가져오기
         String mainInfo = webClient.get()
                 .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + loginMember.get().getEmail())
-                .headers(h -> h.addAll(headers))
-                .retrieve()
-                .onStatus(HttpStatus.UNAUTHORIZED::equals,
+                .headers(h -> h.addAll(headers)) // 헤더값 발급받은 access token으로 셋팅
+                .retrieve() // body를 받아서 디코딩
+                .onStatus(HttpStatus.UNAUTHORIZED::equals, // 401 에러 발생 -> access token 유효기간 만료
                         response -> Mono.error(
                                 new CustomException(ErrorCode.UNAUTHORIZED_KEY)
-                        )).bodyToMono(String.class).block();
+                        )).bodyToMono(String.class).block(); // 동기식으로 body 데이터만 받기
+
 
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(mainInfo);
-
 
         int resSize = rootNode.get("schOut").size();
         System.out.println("응답 받은 객체 사이즈 " + resSize);

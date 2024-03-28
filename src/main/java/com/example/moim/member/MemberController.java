@@ -38,8 +38,8 @@ public class MemberController {
     private final MemberService memberService;
 
     private final LoginDTO loginDTO;
-    public static final String login_url = "http://192.168.0.11:5173/login";
-    public static final String redirect_url = "http://192.168.0.11:5173/main";
+    public static final String login_url = "http://192.168.0.123:8081/api/users-mgmt/login";
+    public static final String redirect_url = "http://192.168.0.123:8081/api/sch-mgmt/main-board";
     public static final String client_secret = "BEA593123F504846B43FE11E0E0762720130A845";
 
     // 회원가입
@@ -68,9 +68,10 @@ public class MemberController {
         System.out.println("로그인 후의 스케쥴 아이디 : " + session.getAttribute("sch_id"));
 
         // 회원이 존재한다면 DBridge Oauth2.0 API 요청
-//         Authorization Code 를 발급 받기 위한 uri ( DBridge oauth2.0 api 요청 uri)
+        // Authorization Code 를 발급 받기 위한 uri ( DBridge oauth2.0 api 요청 uri)
         String auth_url = "https://dev-api.cyber-i.com/svc/moim/auth?USER_ID=firstClient&login_url=" + login_url +
                 "&client_id=firstClient&redircet_uri=" + redirect_url + "&response_type=code";
+
 
         // WebClient 생성
         WebClient authClient = WebClient
@@ -103,7 +104,7 @@ public class MemberController {
                 authorization code를 이용해 access token 발급 요청
              */
 
-        // access token을 발급 받기 위한 uri (DBridge oauth2.0 api 요청 uri)
+        // access token과 refresh token을 발급 받기 위한 uri (DBridge oauth2.0 api 요청 uri)
         String token_url = "https://dev-api.cyber-i.com/svc/moim/token?code=" + codeValue + "&client_id=firstClient&client_secret=" + client_secret +
                 "&grant_type=authorization_code&redirect_uri=" + redirect_url;
 
@@ -122,9 +123,11 @@ public class MemberController {
         JsonNode rootNode2 = mapper.readTree(token_res);
 
         String access_token = rootNode2.get("access_token").asText();
+        String expires_in = rootNode2.get("expires_in").asText();
         String refresh_token = rootNode2.get("refresh_token").asText();
 
-        System.out.println("access_token" + access_token);
+        System.out.println("access_token " + access_token);
+        System.out.println("expires_in " + expires_in);
 
         // 발급 받은 refresh token db에 저장
         memberService.update(refresh_token, login_member.getEmail());
@@ -132,6 +135,8 @@ public class MemberController {
         // 유저 정보 email, nickname, accessToken dto 반환
         loginDTO.setEmail(login_member.getEmail());
         loginDTO.setNickname(login_member.getNickname());
+        loginDTO.setCodeValue(codeValue);
+        loginDTO.setExpires_in(expires_in);
         loginDTO.setAccess_token(access_token);
 
         return loginDTO;

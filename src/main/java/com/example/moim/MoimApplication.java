@@ -6,9 +6,7 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 
 @SpringBootApplication(exclude = {SecurityAutoConfiguration.class})
 public class MoimApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(MoimApplication.class, args);
     }
-
 }

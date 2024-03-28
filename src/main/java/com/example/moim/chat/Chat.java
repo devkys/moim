@@ -18,7 +18,7 @@ public class Chat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long message_id;
-    private String email;
+    private String nickname;
     private Long room_id;
     private String content;
 

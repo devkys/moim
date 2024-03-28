@@ -47,4 +47,10 @@ public class MemberService {
         memberRepository.update(refreshToken, email);
     }
 
+    // access token 만료시
+    // 토큰 재발급을 위해 사용자의 refreshToken을 가져옴
+    public String getRefreshTkn(String email){
+        return memberRepository.getFreshToken(email);
+    }
+
 }

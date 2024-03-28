@@ -17,6 +17,8 @@ public class LoginDTO {
 
     private String email;
     private String nickname;
+    // Auth 코드값
+    private String codeValue;
     private String access_token;
-
+    private String expires_in;
 }

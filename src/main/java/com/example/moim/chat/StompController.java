@@ -22,7 +22,7 @@ public class StompController {
     //"/pub/chat/enter"
     @MessageMapping(value = "/chat/join")
     public void enter(Chat chat){
-        chat.setContent(chat.getEmail() + "님이 참여하였습니다");
+        chat.setContent(chat.getNickname() + "님이 참여하였습니다");
         template.convertAndSend("/sub/chat/room" + chat.getRoom_id(), chat);
     }
 

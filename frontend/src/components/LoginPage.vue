@@ -33,7 +33,6 @@ const submit = handleSubmit(values => {
     }
   }).catch(function (error) {
     if(error.response.data.code==="ACCOUNT-001") {
-      console.error(error.response.data.code.toJSON);
       alert(error.response.data.message);
     }
   })
@@ -68,6 +67,7 @@ const submit = handleSubmit(values => {
 
     </div>
   </form>
+  <router-link to="register" class="reg_link">회원이 아니신가요?</router-link>
 </template>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -84,5 +84,15 @@ form {
 .btn_div {
   text-align: center;
 }
-
+.reg_link {
+  margin-top: 30px;
+  text-decoration: none;
+  color: black;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  &:hover {
+    font-weight: bold;
+  }
+}
 </style>

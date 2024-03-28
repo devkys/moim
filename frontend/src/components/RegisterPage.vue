@@ -96,7 +96,7 @@ const submit = handleSubmit(values => {
     </div>
 
   </form>
-
+  <router-link to="login" class="login_link">이미 회원이신가요?</router-link>
 </template>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
@@ -114,6 +114,18 @@ form {
 
 .btn_div {
   text-align: center;
+}
+
+.login_link {
+  margin-top: 30px;
+  text-decoration: none;
+  color: black;
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  &:hover {
+    font-weight: bold;
+  }
 }
 
 </style>

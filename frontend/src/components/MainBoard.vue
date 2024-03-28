@@ -37,7 +37,6 @@ const {getRootProps, isDragActive, ...rest} = useDropzone({
 });
 
 fetchData();
-
 async function fetchData() {
   try {
     const res1 = await axios.post('api/sch-mgmt/main-board', user_info)
@@ -50,70 +49,18 @@ async function fetchData() {
       invite_modal.value = true;
     }
 
-    client.connect({}, () => {
-
-      watch(drawer, () => {
-        if (drawer.value === true) {
-          getMessage(sch_info.value.seq);
-          getInvtedUser(sch_info.value.seq);
-          if (!subscription) {
-            subscription = client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
-              chat_array.value.push(JSON.parse(chat.body))
-            });
-          }
-        } else if (drawer.value === false && sch_info.value.seq != null) {
-          if (subscription) {
-            subscription.unsubscribe(); // 이전 구독 해지
-            subscription = null;
-            chat_array.value = []; // 채팅 배열 초기화
-          }
-        }
-      });
-    })
     isDataLoaded.value = true;
   } catch (e) {
+    // 로그인을 하지 않고 main url로 접근 했을 때 에러 코드
     if (e.response.data.code === 'ACCOUNT-005' && e.response.status === 400) {
       await alert(e.response.data.message);
       await router.push({name: 'login'});
+    } else {
+      // access token이 휴효하지 않을 때
+      alert(e.response.data.message);
     }
   }
 }
-
-// // 로그인한 유저가 생성한 일정
-// axios.post('api/sch-mgmt/main-board', user_info)
-//     .then((res) => {
-//       schedule_list.value = res.data;
-//     })
-//     .catch((error) => {
-//       alert(error.response.data.message);
-//       if (error.response.data.code === 'ACCOUNT-005') {
-//         alert(error.response.data.message);
-//         router.push({name: 'login'})
-//       }
-//     });
-//
-
-// 다른 유저로부터 초대받은 일정
-// function getInvited() {
-//   return axios.get('api/sch-mgmt/invite-board?email=' + user_info.email);
-// }
-//
-// // 세션을 조회하여 초대 여부 확인
-// function whetherIvite() {
-//   return axios.get('api/sch-mgmt/check-invite?email=' + user_info.email);
-// }
-//
-// //초대 일정 axios all로 멀티 요청
-// axios.all([getInvited(), whetherIvite()])
-//     .then(axios.spread(function (invited, whether) {
-//       invite_list.value = invited.data;
-//
-//       // 초대된 링크 여부 확인
-//       if (whether.data.toString() === "true") {
-//         invite_modal.value = true;
-//       }
-//     }))
-//     .catch((e) => console.log(`${e.error} : ${e.message}`));
 
 watch(state, () => {
   console.log('state', state);
@@ -138,6 +85,27 @@ const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client�
 
 let subscription = null; // 구독을 추적하기 위한 변수
 
+client.connect({}, () => {
+
+  watch(drawer, () => {
+    if (drawer.value === true) {
+      getMessage(sch_info.value.seq);
+      getInvtedUser(sch_info.value.seq);
+      if (!subscription) {
+        subscription = client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
+          chat_array.value.push(JSON.parse(chat.body))
+          console.log(chat_array.value)
+        });
+      }
+    } else if (drawer.value === false && sch_info.value.seq != null) {
+      if (subscription) {
+        subscription.unsubscribe(); // 이전 구독 해지
+        subscription = null;
+        chat_array.value = []; // 채팅 배열 초기화
+      }
+    }
+  });
+})
 
 const getBase64 = file => {
   return new Promise(resolve => {
@@ -154,7 +122,7 @@ const chat = async () => {
     send_msg.value = await getBase64(state.files[0]);
     client.send('/pub/chat/message', JSON.stringify({
       room_id: sch_info.value.seq,
-      email: user_info.email,
+      nickname: user_info.nickname,
       blob_type: send_msg.value,
       send_time: now()
     }));
@@ -164,7 +132,7 @@ const chat = async () => {
   if (send_msg.value !== undefined) {
     client.send('/pub/chat/message', JSON.stringify({
       room_id: sch_info.value.seq,
-      email: user_info.email,
+      nickname: user_info.nickname,
       content: send_msg.value,
       send_time: now()
     }));
@@ -173,13 +141,16 @@ const chat = async () => {
 }
 
 
+// 채팅 db에 저장된 기록 가져오기
 function getMessage(roomId) {
   axios.get('api/chat/getAll?roomId=' + roomId)
       .then((res) => {
         message_list.value = res.data;
+        console.log(message_list.value)
       });
 }
 
+// 채팅방에 초대된 유저 목록 가져오기
 function getInvtedUser(roomId) {
   axios.get('api/users-mgmt/invited-user?roomId=' + roomId)
       .then((res) => {
@@ -187,6 +158,7 @@ function getInvtedUser(roomId) {
       });
 }
 
+// 해당 채팅방 유저 명 수
 const getUserCount = computed(() => invited_user_list.value.length)
 
 // 일정 삭제 (내가 생성한 것만)
@@ -195,8 +167,8 @@ function deleteSchedule(s_id) {
       .then((res) => {
         if (res.data.value === 1) {
           alert("삭제 완료");
-          router.go(0); // 새로고침
         }
+          router.go(0); // 새로고침
       })
       .catch((e) => console.log(`${e.error} : ${e.message}`))
 }
@@ -252,6 +224,7 @@ const scheduleUpdate = handleSubmit(values => {
       })
       .catch(err => console.log(err))
 })
+
 // 초대받은 세션이 존재하면 활성화되는 함수
 // 초대 수락 or 거절
 function inviteAgree(e) {
@@ -275,7 +248,7 @@ function inviteAgree(e) {
   <div v-if="isDataLoaded">
 
     <div class="total_div">
-      <h2>{{ user_info.nickname }}님의 일정</h2>
+      <h2>{{ user_info.nickname }}님의 Moim</h2>
       <!--  초대 수락 or 거절 modal -->
       <v-dialog
           v-model="invite_modal"
@@ -298,7 +271,6 @@ function inviteAgree(e) {
 
         </v-card>
       </v-dialog>
-
 
       <!--  로그인한 유저의 모든 일정 리스트 -->
       <div class="list_div">
@@ -328,7 +300,6 @@ function inviteAgree(e) {
                    style="color: black; margin-bottom: 10px;"> {{ schedule.place }}</a> <br>
               </div>
               <div class="each">
-                <v-icon @click="copy(invite_url+schedule.seq)">mdi-account-multiple</v-icon>
               </div>
               <div class="icon_div">
                 <v-icon
@@ -389,13 +360,10 @@ function inviteAgree(e) {
                 <a :href="'https://map.kakao.com/?q=' + schedule.place" target="_blank"
                    style="color: black; margin-bottom: 10px;"> {{ schedule.place }}</a> <br>
               </div>
-              <div class="each">
-                <v-icon @click="copy(invite_url+schedule.seq)">mdi-account-multiple</v-icon>
-              </div>
               <div class="icon_div">
                 <v-icon
                     icon="mdi-forum-outline"
-                    @click="drawer = !drawer; sch_info.seq = schedule.seq"
+                    @click="drawer = !drawer; sch_info.seq = schedule.seq; sch_info.title = schedule.title "
                 ></v-icon>
               </div>
             </v-expansion-panel-text>
@@ -553,18 +521,19 @@ function inviteAgree(e) {
             temporary
             width="450"
         >
-          <v-list-item>{{ sch_info.title }} 채팅방</v-list-item>
+          <v-list-item> <strong>{{ sch_info.title }} 채팅방</strong> </v-list-item>
+          <v-icon >mdi-account-multiple</v-icon>
           <span> {{ getUserCount }} 명</span>
           <div
               v-for="users in invited_user_list"
               :key="users"
           >
-            <div> {{ users.nickname }}</div>
+            <span> {{ users.nickname }}</span>
           </div>
           <v-divider></v-divider>
           <v-list
               class="overflow-auto"
-              height="700"
+              height="800"
           >
             <!--      db 저장 정보-->
             <div
@@ -573,17 +542,16 @@ function inviteAgree(e) {
                 :key="message"
             >
               <div
-                  v-if="message.email !== user_info.email"
+                  v-if="message.nickname !== user_info.nickname"
               >
-                {{ message.email }}
+                {{ message.nickname }} <br>
+                {{ useDateFormat(message.send_time, 'HH:mm') }}
               </div>
-              {{ useDateFormat(message.send_time, 'HH:mm') }}
               <div
-                  :class="{'msg sent' : message.email === user_info.email, 'msg rcvd' : message.email !== user_info.email}"
+                  :class="{'msg sent' : message.nickname === user_info.nickname, 'msg rcvd' : message.nickname !== user_info.nickname}"
               >
                 {{ message.content }}
                 <template v-if="message.blob_type">
-                  <!--              <Image :src="message.blob_type" alt="missing" style="max-height:100px; max-width:100px;" preview/>-->
                   <img :src="message.blob_type" alt="missing" style="max-height:250px; max-width:250px;"/>
                 </template>
               </div>
@@ -596,17 +564,16 @@ function inviteAgree(e) {
                 :key="index"
             >
               <div
-                  v-if="item.email !== user_info.email"
+                  v-if="item.nickname !== user_info.nickname"
               >
-                {{ item.email }}
+                {{ item.nickname }} <br>
+                {{ useDateFormat(item.send_time,  `HH:mm`) }}
               </div>
-              {{ useDateFormat(item.send_time, 'HH:mm') }}
               <div
-                  :class="{'msg sent' : item.email === user_info.email, 'msg rcvd' : item.email !== user_info.email}"
+                  :class="{'msg sent' : item.nickname === user_info.nickname, 'msg rcvd' : item.nickname !== user_info.nickname}"
               >
                 {{ item.content }}
                 <template v-if="item.blob_type">
-                  <!--              <Image :src="item.blob_type" alt="Image" width="250" preview />-->
                   <img :src="item.blob_type" alt="missing" style="max-height:250px; max-width: 250px;"
                        class="[data-zoomable]">
                 </template>
@@ -661,10 +628,16 @@ h2 {
 
 .list_div {
   margin-bottom: 100px;
+  padding: 20px;
+  background-color: #42a5f5;
+  border-radius: 20px;
 }
 
 .invite_div {
   margin-bottom: 50px;
+  background-color: lightgray;
+  padding: 20px;
+  border-radius: 20px;
 }
 
 .each {
@@ -681,11 +654,6 @@ v-expansion-panels {
   width: 70%;
   padding: 8px 0px 10px 0px;
   border-radius: 8px;
-}
-
-.on-hover {
-  background-color: lightgray;
-  border-radius: 50%;
 }
 
 .file-item {

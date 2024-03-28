@@ -38,4 +38,7 @@ public interface MemberRepository extends JpaRepository<Member, String> {
     @Query(value = "update member set refresh_token=:refreshToken where email =:email", nativeQuery = true)
     void update(String refreshToken, String email);
 
+    @Query(value = "select refresh_token from member where email=:email", nativeQuery = true)
+    String getFreshToken(String email);
+
 }
