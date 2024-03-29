@@ -32,6 +32,4 @@ public class StompController {
         chatService.save(chat);
     }
 
-
-
 }

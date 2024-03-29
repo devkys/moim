@@ -1,7 +1,7 @@
 <script setup>
 import axios from "axios";
 import {computed, reactive, ref, watch} from "vue";
-import {now, useClipboard, useDateFormat} from '@vueuse/core';
+import {now, useDateFormat} from '@vueuse/core';
 import {useField, useForm} from "vee-validate";
 import router from "@/router";
 import webstomp from "webstomp-client";
@@ -14,8 +14,7 @@ const invite_list = ref();
 const add_dialog = ref(false);
 const update_dialog = ref(false);
 const invite_modal = ref(false);
-const {copy} = useClipboard();
-const invite_url = "http://localhost:8081/api/sch-mgmt/invite-sch/"
+const invite_url = "http://192.168.0.123:8081/api/sch-mgmt/invite-sch/";
 const drawer = ref(null);
 const sch_info = ref([]);
 const update_seq = ref([]);
@@ -32,11 +31,18 @@ const state = reactive({
   files: [],
 });
 
+function copy(schId) {
+  navigator.clipboard.writeText(invite_url+schId);
+
+  alert("링크가 복사되었습니다.");
+}
+
 const {getRootProps, isDragActive, ...rest} = useDropzone({
   onDrop,
 });
 
 fetchData();
+
 async function fetchData() {
   try {
     const res1 = await axios.post('api/sch-mgmt/main-board', user_info)
@@ -80,7 +86,7 @@ function handleClickDeleteFile(index) {
   state.files.splice(index, 1);
 }
 
-const sock = new SockJS("http://localhost:8081/stomp/chat");
+const sock = new SockJS("http://192.168.0.123:8081/stomp/chat");
 const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client를 내어준다.
 
 let subscription = null; // 구독을 추적하기 위한 변수
@@ -117,8 +123,13 @@ const getBase64 = file => {
     reader.readAsDataURL(file);
   })
 }
+
+
+
 const chat = async () => {
-  if (state.files !== null && state.files[0] instanceof Blob) {
+  const chatDiv = document.querySelector(".chat_info");
+
+  if (state.files != null && state.files[0] instanceof Blob) {
     send_msg.value = await getBase64(state.files[0]);
     client.send('/pub/chat/message', JSON.stringify({
       room_id: sch_info.value.seq,
@@ -127,19 +138,22 @@ const chat = async () => {
       send_time: now()
     }));
     state.files = null;
-    send_msg.value = "";
+    send_msg.value = null;
+    send_msg.value = null;
   }
-  if (send_msg.value !== undefined) {
+
+  if (send_msg.value != null) {
     client.send('/pub/chat/message', JSON.stringify({
       room_id: sch_info.value.seq,
       nickname: user_info.nickname,
       content: send_msg.value,
       send_time: now()
     }));
-    send_msg.value = "";
+    send_msg.value = null;
   }
-}
 
+  chatDiv.scrollTop = 20 * chatDiv.scrollHeight;
+}
 
 // 채팅 db에 저장된 기록 가져오기
 function getMessage(roomId) {
@@ -168,7 +182,7 @@ function deleteSchedule(s_id) {
         if (res.data.value === 1) {
           alert("삭제 완료");
         }
-          router.go(0); // 새로고침
+        router.go(0); // 새로고침
       })
       .catch((e) => console.log(`${e.error} : ${e.message}`))
 }
@@ -319,11 +333,9 @@ function inviteAgree(e) {
                 update_duedate.duedate = schedule.duedate;
                 update_place.place = schedule.place;"
                 ></v-icon>
-
                 <v-icon
                     icon="mdi-share"
-                    v-bind="props"
-                    @click="copy(invite_url+schedule.seq)"
+                    @click="copy(schedule.seq)"
                 >
                 </v-icon>
 
@@ -521,71 +533,71 @@ function inviteAgree(e) {
             temporary
             width="450"
         >
-          <v-list-item> <strong>{{ sch_info.title }} 채팅방</strong> </v-list-item>
-          <v-icon >mdi-account-multiple</v-icon>
+          <div style="height: 60px; text-align: center; margin-top: 10px;"><strong>{{ sch_info.title }} 채팅방</strong></div>
+          <v-icon>mdi-account-multiple</v-icon>
           <span> {{ getUserCount }} 명</span>
-          <div
-              v-for="users in invited_user_list"
-              :key="users"
-          >
-            <span v-if="user_info===users.nickname"> {{ users.nickname }} </span>
-          </div>
+<!--          <div-->
+<!--              v-for="users in invited_user_list"-->
+<!--              :key="users"-->
+<!--          >-->
+<!--            <span v-if="user_info.nickname !== users.nickname">{{users.nickname}}</span>-->
+<!--          </div>-->
           <v-divider></v-divider>
-          <v-list
-              class="overflow-auto"
-              height="800"
-          >
-            <!--      db 저장 정보-->
-            <div
-                class="chat"
-                v-for="message in message_list"
-                :key="message"
-            >
+            <div class="chat_info">
+              <!--      db 저장 정보-->
               <div
-                  v-if="message.nickname !== user_info.nickname"
+                  class="chat"
+                  v-for="message in message_list"
+                  :key="message"
               >
-                {{ message.nickname }} <br>
+                <div
+                    v-if="message.nickname !== user_info.nickname"
+                >
+                  {{ message.nickname }} <br>
+                </div>
+                <div
+                    :class="{'msg sent' : message.nickname === user_info.nickname, 'msg rcvd' : message.nickname !== user_info.nickname}"
+                >
+                  {{ message.content }}
+                  {{ useDateFormat(message.send_time, 'HH:mm') }}
+                  <template v-if="message.blob_type">
+                    <img :src="message.blob_type" alt="missing" style="max-height:250px; max-width:250px;"/>
+                  </template>
+                </div>
               </div>
+
+              <!--        stomp 연결 -->
               <div
-                  :class="{'msg sent' : message.nickname === user_info.nickname, 'msg rcvd' : message.nickname !== user_info.nickname}"
+                  class="chat"
+                  v-for="(item, index) in chat_array"
+                  :key="index"
               >
-                {{ message.content }}
-                {{ useDateFormat(message.send_time, 'HH:mm') }}
-                <template v-if="message.blob_type">
-                  <img :src="message.blob_type" alt="missing" style="max-height:250px; max-width:250px;"/>
-                </template>
+                <div
+                    v-if="item.nickname !== user_info.nickname"
+                >
+                  {{ item.nickname }} <br>
+                </div>
+                <div
+                    :class="{'msg sent' : item.nickname === user_info.nickname, 'msg rcvd' : item.nickname !== user_info.nickname}"
+                >
+                  <div v-if="item.content !== null">
+                    {{ item.content }}
+                    {{ useDateFormat(item.send_time, `HH:mm`) }}
+                  </div>
+                  <template v-if="item.blob_type">
+                    <img :src="item.blob_type" alt="missing" style="max-height:250px; max-width: 250px;">
+                    {{ useDateFormat(item.send_time, `HH:mm`) }}
+                  </template>
+                </div>
               </div>
             </div>
 
-            <!--        stomp 연결 -->
-            <div
-                class="chat"
-                v-for="(item, index) in chat_array"
-                :key="index"
-            >
-              <div
-                  v-if="item.nickname !== user_info.nickname"
-              >
-                {{ item.nickname }} <br>
-              </div>
-              <div
-                  :class="{'msg sent' : item.nickname === user_info.nickname, 'msg rcvd' : item.nickname !== user_info.nickname}"
-              >
-                {{ item.content }}
-                {{ useDateFormat(item.send_time,  `HH:mm`) }}
-                <template v-if="item.blob_type">
-                  <img :src="item.blob_type" alt="missing" style="max-height:250px; max-width: 250px;"
-                       class="[data-zoomable]">
-                </template>
-              </div>
-            </div>
-          </v-list>
           <v-divider></v-divider>
-          <v-list>
+
+          <div class="chat_field">
             <v-form @submit.prevent="chat">
-              <v-container>
                 <v-row>
-                  <v-col cols="12">
+                  <v-col>
                     <v-text-field
                         v-model="send_msg"
                         v-bind="getRootProps()"
@@ -594,7 +606,7 @@ function inviteAgree(e) {
                         variant="filled"
                         append-icon="mdi-send"
                         append-inner-icon="mdi-map-maker"
-                        @click:append="chat"
+                        @click:append="chat();"
                     >
                       <div class="file-item" v-for="(file, index) in state.files" :key="index">
                         <span>{{ file.name }}</span>
@@ -603,10 +615,8 @@ function inviteAgree(e) {
                     </v-text-field>
                   </v-col>
                 </v-row>
-              </v-container>
             </v-form>
-          </v-list>
-
+          </div>
         </v-navigation-drawer>
       </v-layout>
     </div>
@@ -614,6 +624,12 @@ function inviteAgree(e) {
 
 </template>
 <style scoped>
+
+.chat_info {
+  min-height: 800px;
+  max-height: 830px;
+  overflow-y: auto;
+}
 
 h2 {
   text-align: center;
@@ -629,13 +645,13 @@ h2 {
 .list_div {
   margin-bottom: 100px;
   padding: 20px;
-  background-color: #42a5f5;
+  //background-color: #191919;
   border-radius: 20px;
 }
 
 .invite_div {
   margin-bottom: 50px;
-  background-color: lightgray;
+  //background-color: lightgray;
   padding: 20px;
   border-radius: 20px;
 }
@@ -767,4 +783,10 @@ v-expansion-panels {
   padding: 10px;
   float: right;
 }
+
+.chat_field {
+  padding: 8px;
+  margin-top: 30px;
+}
+
 </style>

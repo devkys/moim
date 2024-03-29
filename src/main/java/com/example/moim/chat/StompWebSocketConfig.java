@@ -16,7 +16,7 @@ public class StompWebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // http를 통한 handshake와 통신을 당담할 endpoint 지정
         // http://localhost:8081/stomp/chat
         registry.addEndpoint("/stomp/chat")
-                .setAllowedOrigins("http://localhost:5173")
+                .setAllowedOriginPatterns("*")
                 .withSockJS();
     }
 

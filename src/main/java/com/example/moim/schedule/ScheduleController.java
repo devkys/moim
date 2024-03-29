@@ -120,7 +120,7 @@ public class ScheduleController {
         HttpSession session = req.getSession();
         session.setAttribute("sch_id", id);
         System.out.println("--------------------------" + session.getAttribute("sch_id"));
-        return new RedirectView("http://localhost:5173/login");
+        return new RedirectView("http://192.168.0.123:5173/login");
     }
 
     /*
@@ -143,6 +143,7 @@ public class ScheduleController {
                 세션 값 not null
              */
             Room room = roomService.alreadyEnter(email, (Long.parseLong(sch_id.toString())));
+
             if (scheduleService.getEmail(Long.parseLong(sch_id.toString())).equals(email) || room != null) {
                 // 세션 값은 있지만 이미 초대된 방의 링크를 클릭했을 때 세션 끊기
                 session.invalidate();
