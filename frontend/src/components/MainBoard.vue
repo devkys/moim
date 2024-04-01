@@ -1,6 +1,6 @@
 <script setup>
 import axios from "axios";
-import {computed, reactive, ref, watch} from "vue";
+import {computed, nextTick, reactive, ref, watch} from "vue";
 import {now, useDateFormat} from '@vueuse/core';
 import {useField, useForm} from "vee-validate";
 import router from "@/router";
@@ -27,6 +27,8 @@ const {user_info} = history.state;
 const message_list = ref();
 const chat_array = ref([]);
 const isDataLoaded = ref(false);
+const chat_div = ref();
+
 const state = reactive({
   files: [],
 });
@@ -86,21 +88,28 @@ function handleClickDeleteFile(index) {
   state.files.splice(index, 1);
 }
 
+
 const sock = new SockJS("http://192.168.0.123:8081/stomp/chat");
 const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client를 내어준다.
 
 let subscription = null; // 구독을 추적하기 위한 변수
 
-client.connect({}, () => {
 
+client.connect({}, () => {
   watch(drawer, () => {
     if (drawer.value === true) {
       getMessage(sch_info.value.seq);
       getInvtedUser(sch_info.value.seq);
+
       if (!subscription) {
         subscription = client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
           chat_array.value.push(JSON.parse(chat.body))
           console.log(chat_array.value)
+
+          nextTick(() => {
+            chat_div.value.scrollTo(0, chat_div.value.scrollHeight)
+          })
+
         });
       }
     } else if (drawer.value === false && sch_info.value.seq != null) {
@@ -110,6 +119,7 @@ client.connect({}, () => {
         chat_array.value = []; // 채팅 배열 초기화
       }
     }
+
   });
 })
 
@@ -127,7 +137,6 @@ const getBase64 = file => {
 
 
 const chat = async () => {
-  const chatDiv = document.querySelector(".chat_info");
 
   if (state.files != null && state.files[0] instanceof Blob) {
     send_msg.value = await getBase64(state.files[0]);
@@ -152,7 +161,7 @@ const chat = async () => {
     send_msg.value = null;
   }
 
-  chatDiv.scrollTop = 20 * chatDiv.scrollHeight;
+
 }
 
 // 채팅 db에 저장된 기록 가져오기
@@ -543,7 +552,7 @@ function inviteAgree(e) {
 <!--            <span v-if="user_info.nickname !== users.nickname">{{users.nickname}}</span>-->
 <!--          </div>-->
           <v-divider></v-divider>
-            <div class="chat_info">
+            <div class="chat_info" ref="chat_div">
               <!--      db 저장 정보-->
               <div
                   class="chat"
@@ -592,6 +601,7 @@ function inviteAgree(e) {
               </div>
             </div>
 
+
           <v-divider></v-divider>
 
           <div class="chat_field">
@@ -606,7 +616,7 @@ function inviteAgree(e) {
                         variant="filled"
                         append-icon="mdi-send"
                         append-inner-icon="mdi-map-maker"
-                        @click:append="chat();"
+                        @click:append="chat(); scrollY"
                     >
                       <div class="file-item" v-for="(file, index) in state.files" :key="index">
                         <span>{{ file.name }}</span>
@@ -788,5 +798,7 @@ v-expansion-panels {
   padding: 8px;
   margin-top: 30px;
 }
+
+
 
 </style>
