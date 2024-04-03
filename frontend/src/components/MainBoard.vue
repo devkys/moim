@@ -7,6 +7,9 @@ import router from "@/router";
 import webstomp from "webstomp-client";
 import SockJS from "sockjs-client";
 import {useDropzone} from "vue3-dropzone";
+import {useUserStore} from "@/store/user";
+
+const store = useUserStore();
 
 const schedule_list = ref();
 const invited_user_list = ref([]);
@@ -23,7 +26,7 @@ const update_content = ref([]);
 const update_duedate = ref([]);
 const update_place = ref([]);
 const send_msg = ref();
-const {user_info} = history.state;
+// const {user_info} = history.state;
 const message_list = ref();
 const chat_array = ref([]);
 const isDataLoaded = ref(false);
@@ -47,16 +50,15 @@ fetchData();
 
 async function fetchData() {
   try {
-    const res1 = await axios.post('api/sch-mgmt/main-board', user_info)
+    const res1 = await axios.post('api/sch-mgmt/main-board', store)
     schedule_list.value = res1.data
-    const res2 = await axios.get('api/sch-mgmt/invite-board?email=' + user_info.email);
+    const res2 = await axios.get('api/sch-mgmt/invite-board?email=' + store.email);
     invite_list.value = res2.data;
-    const res3 = await axios.get('api/sch-mgmt/check-invite?email=' + user_info.email);
+    const res3 = await axios.get('api/sch-mgmt/check-invite?email=' + store.email);
 
     if (res3.data.toString() === "true") {
       invite_modal.value = true;
     }
-
     isDataLoaded.value = true;
   } catch (e) {
     // 로그인을 하지 않고 main url로 접근 했을 때 에러 코드
@@ -88,23 +90,21 @@ function handleClickDeleteFile(index) {
   state.files.splice(index, 1);
 }
 
-
 const sock = new SockJS("http://192.168.0.123:8081/stomp/chat");
 const client = webstomp.over(sock); // sockJS를 내부에 들고 있는 client를 내어준다.
 
 let subscription = null; // 구독을 추적하기 위한 변수
 
-
 client.connect({}, () => {
   watch(drawer, () => {
     if (drawer.value === true) {
+
       getMessage(sch_info.value.seq);
       getInvtedUser(sch_info.value.seq);
 
       if (!subscription) {
         subscription = client.subscribe('/sub/chat/room/' + sch_info.value.seq, (chat) => {
           chat_array.value.push(JSON.parse(chat.body))
-          console.log(chat_array.value)
 
           nextTick(() => {
             chat_div.value.scrollTo(0, chat_div.value.scrollHeight)
@@ -119,7 +119,6 @@ client.connect({}, () => {
         chat_array.value = []; // 채팅 배열 초기화
       }
     }
-
   });
 })
 
@@ -142,7 +141,7 @@ const chat = async () => {
     send_msg.value = await getBase64(state.files[0]);
     client.send('/pub/chat/message', JSON.stringify({
       room_id: sch_info.value.seq,
-      nickname: user_info.nickname,
+      nickname: store.nickname,
       blob_type: send_msg.value,
       send_time: now()
     }));
@@ -154,14 +153,12 @@ const chat = async () => {
   if (send_msg.value != null) {
     client.send('/pub/chat/message', JSON.stringify({
       room_id: sch_info.value.seq,
-      nickname: user_info.nickname,
+      nickname: store.nickname,
       content: send_msg.value,
       send_time: now()
     }));
     send_msg.value = null;
   }
-
-
 }
 
 // 채팅 db에 저장된 기록 가져오기
@@ -222,7 +219,7 @@ const place = useField('place');
 const duedate = useField('duedate');
 
 const scheduleSave = handleSubmit(values => {
-  values.email = user_info.email;
+  values.email = store.email;
   axios.post('api/sch-mgmt/save', values)
       .then(res => {
         if (res.data) {
@@ -235,7 +232,7 @@ const scheduleSave = handleSubmit(values => {
 })
 
 const scheduleUpdate = handleSubmit(values => {
-  values.email = user_info.email;
+  values.email = store.email;
   values.seq = update_seq.value.seq;
   axios.post('api/sch-mgmt/update', values)
       .then(res => {
@@ -257,7 +254,7 @@ function inviteAgree(e) {
     url: 'api/room_mgmt/agree-invite',
     data: {
       choose: e,
-      email: user_info.email
+      email: store.email
     }
   }).then((res) => {
     console.log(res.data);
@@ -271,7 +268,7 @@ function inviteAgree(e) {
   <div v-if="isDataLoaded">
 
     <div class="total_div">
-      <h2>{{ user_info.nickname }}님의 Moim</h2>
+      <h2>{{ store.nickname }}님의 Moim</h2>
       <!--  초대 수락 or 거절 modal -->
       <v-dialog
           v-model="invite_modal"
@@ -560,12 +557,12 @@ function inviteAgree(e) {
                   :key="message"
               >
                 <div
-                    v-if="message.nickname !== user_info.nickname"
+                    v-if="message.nickname !== store.nickname"
                 >
                   {{ message.nickname }} <br>
                 </div>
                 <div
-                    :class="{'msg sent' : message.nickname === user_info.nickname, 'msg rcvd' : message.nickname !== user_info.nickname}"
+                    :class="{'msg sent' : message.nickname === store.nickname, 'msg rcvd' : message.nickname !== store.nickname}"
                 >
                   {{ message.content }}
                   {{ useDateFormat(message.send_time, 'HH:mm') }}
@@ -582,12 +579,12 @@ function inviteAgree(e) {
                   :key="index"
               >
                 <div
-                    v-if="item.nickname !== user_info.nickname"
+                    v-if="item.nickname !== store.nickname"
                 >
                   {{ item.nickname }} <br>
                 </div>
                 <div
-                    :class="{'msg sent' : item.nickname === user_info.nickname, 'msg rcvd' : item.nickname !== user_info.nickname}"
+                    :class="{'msg sent' : item.nickname === store.nickname, 'msg rcvd' : item.nickname !== store.nickname}"
                 >
                   <div v-if="item.content !== null">
                     {{ item.content }}
@@ -639,6 +636,7 @@ function inviteAgree(e) {
   min-height: 800px;
   max-height: 830px;
   overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
 h2 {

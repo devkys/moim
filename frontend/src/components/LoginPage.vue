@@ -1,8 +1,10 @@
 <script setup>
-// import { ref} from 'vue'
 import { useField, useForm } from 'vee-validate'
 import axios from "axios";
 import router from "@/router";
+import {useUserStore} from "@/store/user";
+
+const store = useUserStore();
 
 const { handleSubmit } = useForm({
   validationSchema: {
@@ -29,7 +31,18 @@ const submit = handleSubmit(values => {
   }).then(function (res) {
     if(res.data) {
       // login DTO 정보를 응답으로 받음
-      router.push({name: 'main', state: { user_info: res.data }})
+
+      // 스토어 상태 변경
+      store.$patch({
+        email : res.data.email,
+        nickname: res.data.nickname,
+        access_token: res.data.access_token,
+        codeValue: res.data.codeValue
+      })
+
+      // router.push({name: 'main', state: { user_info: res.data }})
+      router.push('/main')
+
     }
   }).catch(function (error) {
     if(error.response.data.code==="ACCOUNT-001") {
