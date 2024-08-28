@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: moim
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/pro
+    username: kks
+    password: kks
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+server:
+  error:
+    whitelabel:
+      enabled: false
+
+
+logging:
+  include-application-name: false
+  level:
+    com:
+      example:
+        moim:
+          chat: info
+          member: info
+          room: info
+          schedule: info
+  file:
+    name: C:\Users\yong\project\log.txt
+
+debug: true
+
