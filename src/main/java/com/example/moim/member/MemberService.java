@@ -3,22 +3,26 @@ package com.example.moim.member;
 import com.example.moim.config.security.CustomException;
 import com.example.moim.config.security.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Log4j2
 public class MemberService {
 
     private final MemberRepository memberRepository;
 
     // 이메일 중복 확인
     public void validateDuplicateEmail(Member member) {
+        // 이메일이 중복될 시 custom 예외 발생
         if(memberRepository.existsById(member.getEmail())) {
-           throw new CustomException(ErrorCode.HAS_EMAIL);
+            log.info("=== LOG MESSAGE === [MemberService : 이메일 중복]");
+            throw new CustomException(ErrorCode.HAS_EMAIL);
         }
     }
 
