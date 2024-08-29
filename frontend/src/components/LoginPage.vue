@@ -4,6 +4,7 @@ import axios from "axios";
 import router from "@/router";
 import {useUserStore} from "@/store/user";
 
+// 피니아 상태(data)관리 라이브러리
 const store = useUserStore();
 
 const { handleSubmit } = useForm({

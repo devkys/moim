@@ -20,4 +20,9 @@ const vuetify = createVuetify({
 })
 
 // eslint-disable-next-line no-undef
-createApp(App).use(vuetify).use(router).use(PrimeVue).use(pinia).mount('#app')
+createApp(App)
+    .use(vuetify)
+    .use(router)
+    .use(PrimeVue)
+    .use(pinia)
+    .mount('#app')

@@ -22,6 +22,7 @@
     "vee-validate": "^4.12.6",
     "vue": "^3.2.13",
     "vue-router": "^4.3.0",
+    "vue-validate": "^1.0.1",
     "vue3-dropzone": "^2.2.1",
     "vuetify": "^3.5.9",
     "webstomp-client": "^1.2.6"

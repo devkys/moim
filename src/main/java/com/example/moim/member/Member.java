@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 /*
     db 테이블과 매핑되는 유저 엔티티 도메인
  */
-@Entity(name = "member")
+@Entity(name = "Member")
 @Getter
 @Setter
 @Data

@@ -19,9 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.view.RedirectView;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
@@ -48,10 +46,11 @@ public class ScheduleController {
     /*
         유저의 일정 리스트 반환
         *. 내가 직접 생성한 일정만 반환
+        반환값 List<SchedultDTO>
      */
     @PostMapping("main-board")
     @ResponseBody
-    public List<ScheduleDTO> getAllPost(@RequestBody Optional<LoginDTO> loginMember) throws JsonProcessingException {
+    public void getAllPost(@RequestBody Optional<LoginDTO> loginMember) {
 
         // 로그인 서비스 없이 main api를 호출했을 때 예외 발생 시킴
         loginMember.orElseThrow(()-> new CustomException(ErrorCode.WRONG_ACCESS));
@@ -74,30 +73,30 @@ public class ScheduleController {
         headers.add("Authorization", loginMember.get().getAccess_token());
 
         // 외부 api를 호출할 WebClient 생성
-        WebClient webClient = WebClient.create();
-
-        // response를 String으로 가져오기
-        String mainInfo = webClient.get()
-                .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + loginMember.get().getEmail())
-                .headers(h -> h.addAll(headers)) // 헤더값 발급받은 access token으로 셋팅
-                .retrieve() // body를 받아서 디코딩
-                .onStatus(HttpStatus.UNAUTHORIZED::equals, // 401 에러 발생 -> access token 유효기간 만료
-                        response -> Mono.error(
-                                new CustomException(ErrorCode.UNAUTHORIZED_KEY)
-                        )).bodyToMono(String.class).block(); // 동기식으로 body 데이터만 받기
+//        WebClient webClient = WebClient.create();
+//
+//        // response를 String으로 가져오기
+//        String mainInfo = webClient.get()
+//                .uri("https://dev-api.cyber-i.com/svc/moim/main?email=" + loginMember.get().getEmail())
+//                .headers(h -> h.addAll(headers)) // 헤더값 발급받은 access token으로 셋팅
+//                .retrieve() // body를 받아서 디코딩
+//                .onStatus(HttpStatus.UNAUTHORIZED::equals, // 401 에러 발생 -> access token 유효기간 만료
+//                        response -> Mono.error(
+//                                new CustomException(ErrorCode.UNAUTHORIZED_KEY)
+//                        )).bodyToMono(String.class).block(); // 동기식으로 body 데이터만 받기
 
 
         ObjectMapper mapper = new ObjectMapper();
-        JsonNode rootNode = mapper.readTree(mainInfo);
+//        JsonNode rootNode = mapper.readTree(mainInfo);
+//
+//        int resSize = rootNode.get("schOut").size();
+//        System.out.println("응답 받은 객체 사이즈 " + resSize);
+//
+//        List<ScheduleDTO> scheduleDTOS = mapper.readValue(rootNode.get("schOut").toString(), new TypeReference<>() {});
+//
+//        System.out.println("DBridge로 부터 응답 받은 스케쥴 리스트 " + scheduleDTOS);
 
-        int resSize = rootNode.get("schOut").size();
-        System.out.println("응답 받은 객체 사이즈 " + resSize);
-
-        List<ScheduleDTO> scheduleDTOS = mapper.readValue(rootNode.get("schOut").toString(), new TypeReference<>() {});
-
-        System.out.println("DBridge로 부터 응답 받은 스케쥴 리스트 " + scheduleDTOS);
-
-        return scheduleDTOS;
+//        return scheduleDTOS;
 
     }
 

@@ -4,7 +4,6 @@ import com.example.moim.config.security.CustomException;
 import com.example.moim.config.security.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -36,6 +35,7 @@ public class MemberService {
     public Member login(Member member) {
         // orElseThrow를 사용하여 코드 가독성 향상
         // 해당 Member가 없다면 예외, 있다면 Return
+        // repository class의 login method return 값은 optional
         return memberRepository.login(member.getEmail(), member.getPw())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
