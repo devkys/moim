@@ -17,6 +17,9 @@ bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 
+### spring boot security id and password info ###
+src/main/java/com/example/moim/config/security/DefaultSecurityConfig.java
+
 ### IntelliJ IDEA ###
 .idea
 *.iws
