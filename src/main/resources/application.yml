@@ -14,7 +14,33 @@ spring:
       naming:
         physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
 
+  security:
+    user:
+      name: user
+      password: 1234
+    oauth2:
+      authorizationserver:
+        client:
+          oidc-client:
+            registration:
+              client-id: "oidc-client"
+              client-secret: "abcd"
+              client-authentication-methods:
+                - "client_secret_basic"
+              authorization-grant-types:
+                - "authorization_code"
+                - "refresh_code"
+              redirect-uris:
+                - "http://127.0.0.1:8080/login/oauth2/code/oidc-client"
+              post-logout-redirect-uris:
+                - "http://127.0.0.1:8080"
+              scopes:
+                - "openid"
+                - "profile"
+            require-authorization-consent: true
+
 server:
+  port: 8080
   error:
     whitelabel:
       enabled: false
@@ -34,4 +60,3 @@ logging:
     name: C:\Users\yong\project\log.txt
 
 debug: true
-

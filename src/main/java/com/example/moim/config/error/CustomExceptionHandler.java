@@ -1,4 +1,4 @@
-package com.example.moim.config.security;
+package com.example.moim.config.error;
 
 
 import org.springframework.http.ResponseEntity;

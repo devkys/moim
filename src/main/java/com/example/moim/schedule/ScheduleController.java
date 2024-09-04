@@ -1,28 +1,21 @@
 package com.example.moim.schedule;
 
-import com.example.moim.config.security.CustomException;
-import com.example.moim.config.security.ErrorCode;
+import com.example.moim.config.error.CustomException;
+import com.example.moim.config.error.ErrorCode;
 import com.example.moim.member.LoginDTO;
 import com.example.moim.member.MemberService;
 import com.example.moim.room.Room;
 import com.example.moim.room.RoomService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 
