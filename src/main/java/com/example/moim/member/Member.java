@@ -5,6 +5,8 @@ import jakarta.persistence.Id;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.antlr.v4.runtime.misc.NotNull;
+import org.hibernate.annotations.NotFound;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -38,13 +40,13 @@ public class Member implements UserDetails {
     // 인증된 사용자가 사용한 패스워드 반환
     @Override
     public String getPassword() {
-        return "";
+        return this.pw;
     }
 
     // 인증된 사용자가 사용한 유저네임 반환, null x
     @Override
     public String getUsername() {
-        return "";
+        return this.name;
     }
 
     // 사용자 계정 만료 여부, 만료된 계정은 인증될 수 없음.
@@ -65,7 +67,7 @@ public class Member implements UserDetails {
         return false;
     }
 
-    // 유저가 사용가능 한지 불가능한지의 여부, 불가능한 사용자는 인증될 수 없음.
+    // 유저가 활성화 여부, 불가능한 사용자는 인증될 수 없음.
     @Override
     public boolean isEnabled() {
         return false;

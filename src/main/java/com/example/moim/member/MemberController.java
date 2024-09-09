@@ -25,8 +25,6 @@ public class MemberController {
     private final MemberService memberService;
 
     private final LoginDTO loginDTO;
-    private static final String login_url = "http://localhost:8080/api/user/login";
-    private static final String redirect_url = "http://localhost:8080/api/user/main-board";
 
     // 회원가입
     @PostMapping("signup")
